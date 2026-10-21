@@ -1,10 +1,10 @@
 // SPONSORS & STAFF — the money pillar and the people pillar (SPEC §6).
 // Only the 2 active sponsors show objective cards; the other two pay quietly.
-import { sponsorsOfTeam, totalSponsorValue } from '../data/sponsorsAndEngines.js';
-import { teamById } from '../data/teamsAndDrivers.js';
-import { STAFF } from '../data/facilitiesCatalog.js';
-import { getState, save, log } from '../engine/store.js';
-import { topbarHTML, fmt$ } from './shared.js';
+import { sponsorsOfTeam, totalSponsorValue } from '../data/sponsorsAndEngines.js?v=20261022b';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022b';
+import { STAFF } from '../data/facilitiesCatalog.js?v=20261022b';
+import { getState, save, log } from '../engine/store.js?v=20261022b';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022b';
 
 let msg = '', msgErr = false;
 

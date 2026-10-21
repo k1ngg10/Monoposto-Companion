@@ -1,13 +1,13 @@
 // RACE WEEKEND — renders entirely from the calendar row + the save.
 // Race length is selectable; distance = laps × lap length, computed live.
 // Results are logged AFTER the game is played — the app never dictates them.
-import { CALENDAR } from '../data/calendar2026.js';
-import { TRACK_MAPS } from '../data/trackMaps.js';
-import { driversOfTeam } from '../data/teamsAndDrivers.js';
-import { getState, save } from '../engine/store.js';
-import { logResult } from '../engine/raceSimulator.js';
-import { prettyDate } from '../engine/timeEngine.js';
-import { topbarHTML } from './shared.js';
+import { CALENDAR } from '../data/calendar2026.js?v=20261022b';
+import { TRACK_MAPS } from '../data/trackMaps.js?v=20261022b';
+import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022b';
+import { getState, save } from '../engine/store.js?v=20261022b';
+import { logResult } from '../engine/raceSimulator.js?v=20261022b';
+import { prettyDate } from '../engine/timeEngine.js?v=20261022b';
+import { topbarHTML } from './shared.js?v=20261022b';
 
 function rangeLabel(race) {
   const sat = prettyDate(race.sat), sun = prettyDate(race.sun);

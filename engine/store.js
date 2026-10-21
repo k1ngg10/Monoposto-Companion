@@ -1,7 +1,7 @@
 // STORE — the live save state. Single source of truth for the career.
 // Persists to localStorage; JSON export/import for backup (SPEC §1).
-import { teamById, tierOf, ENTRY_TIERS } from '../data/teamsAndDrivers.js';
-import { totalSponsorValue } from '../data/sponsorsAndEngines.js';
+import { teamById, tierOf, ENTRY_TIERS } from '../data/teamsAndDrivers.js?v=20261022b';
+import { totalSponsorValue } from '../data/sponsorsAndEngines.js?v=20261022b';
 
 const KEY = 'monoposto-companion-save-v1';
 let memoryFallback = null;

@@ -1,10 +1,10 @@
 // FACILITIES — the HQ tree, rendered from data/facilitiesCatalog.js.
 // Each level holds nodes[]; buying a node queues a calendar task that
 // completes on its date (the HQ agenda surfaces it when it's ≤7 days out).
-import { FACILITIES } from '../data/facilitiesCatalog.js';
-import { getState } from '../engine/store.js';
-import { queueFacility, prettyDate } from '../engine/timeEngine.js';
-import { topbarHTML, fmt$ } from './shared.js';
+import { FACILITIES } from '../data/facilitiesCatalog.js?v=20261022b';
+import { getState } from '../engine/store.js?v=20261022b';
+import { queueFacility, prettyDate } from '../engine/timeEngine.js?v=20261022b';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022b';
 
 let msg = '', msgErr = false;
 

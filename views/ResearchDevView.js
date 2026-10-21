@@ -1,11 +1,11 @@
 // R&D — the parts tree, rendered from data/partsCatalog.js.
 // Research (RP + days + D20) → Manufacture ($ + days) → DP → car power.
 // In-progress work shows here in full; the HQ agenda only surfaces it ≤7 days out.
-import { DEPARTMENTS, APPROACHES } from '../data/partsCatalog.js';
-import { getState, save, truePower, monopostoPower } from '../engine/store.js';
-import { researchQuote, startResearch, manufactureQuote, startManufacture, debutRound } from '../engine/rdEngine.js';
-import { prettyDate } from '../engine/timeEngine.js';
-import { topbarHTML, fmt$ } from './shared.js';
+import { DEPARTMENTS, APPROACHES } from '../data/partsCatalog.js?v=20261022b';
+import { getState, save, truePower, monopostoPower } from '../engine/store.js?v=20261022b';
+import { researchQuote, startResearch, manufactureQuote, startManufacture, debutRound } from '../engine/rdEngine.js?v=20261022b';
+import { prettyDate } from '../engine/timeEngine.js?v=20261022b';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022b';
 
 let approach = 'standard';
 let msg = '', msgErr = false;

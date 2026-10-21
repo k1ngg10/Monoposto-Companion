@@ -3,11 +3,11 @@
 // task completions (research / manufacture / facility), the Monday weekly
 // tick, and race-weekend arrivals. The agenda is GENERATED from state —
 // player entries exist only because the player queued them.
-import { CALENDAR, nextRace } from '../data/calendar2026.js';
-import { teamById } from '../data/teamsAndDrivers.js';
-import { totalSponsorValue } from '../data/sponsorsAndEngines.js';
-import { resolveResearch, resolveManufacture } from './rdEngine.js';
-import { log, save } from './store.js';
+import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022b';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022b';
+import { totalSponsorValue } from '../data/sponsorsAndEngines.js?v=20261022b';
+import { resolveResearch, resolveManufacture } from './rdEngine.js?v=20261022b';
+import { log, save } from './store.js?v=20261022b';
 
 // --- date helpers ------------------------------------------------------------
 export const DAY = 86400000;

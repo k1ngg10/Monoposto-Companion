@@ -7,7 +7,7 @@
 // OTHER team's values/objectives are DRAFT placeholders in the same
 // shape. Sponsor logos are white-glyph SVGs (assets/logos/sp-*.svg);
 // logo: null = no clean mark found — the name still renders.
-import { LOGO_DATA } from './logoData.js';
+import { LOGO_DATA } from './logoData.js?v=20261022b';
 const L = n => `assets/logos/sp-${n}.svg`;
 export const TEAM_SPONSORS = {
   porsche: [

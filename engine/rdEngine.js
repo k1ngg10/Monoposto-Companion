@@ -1,9 +1,9 @@
 // R&D ENGINE — research (RP + days + D20) → manufacture ($ + days) → DP.
 // Rules: SPEC §6 Pillar 4. Dice live here and ONLY here — never in a race.
-import { partById, APPROACHES } from '../data/partsCatalog.js';
-import { CALENDAR } from '../data/calendar2026.js';
-import { addDays } from './timeEngine.js';
-import { log } from './store.js';
+import { partById, APPROACHES } from '../data/partsCatalog.js?v=20261022b';
+import { CALENDAR } from '../data/calendar2026.js?v=20261022b';
+import { addDays } from './timeEngine.js?v=20261022b';
+import { log } from './store.js?v=20261022b';
 
 export function debutRound(isoDate) {
   const race = CALENDAR.find(r => r.sun >= isoDate);

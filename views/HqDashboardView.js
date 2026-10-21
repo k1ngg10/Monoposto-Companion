@@ -1,10 +1,10 @@
 // HQ DASHBOARD — the advance-time agenda (SPEC §4).
 // The agenda is generated from the save: player tasks surface ~7 days out,
 // fire on their date, and leave. Fixtures: Monday tick + race weekends.
-import { getState, truePower, monopostoPower, wipe, exportJSON, importJSON } from '../engine/store.js';
-import { advance, agenda, prettyDate, fromISO } from '../engine/timeEngine.js';
-import { nextRace, CALENDAR } from '../data/calendar2026.js';
-import { topbarHTML, refreshHUD, floater, fmt$ } from './shared.js';
+import { getState, truePower, monopostoPower, wipe, exportJSON, importJSON } from '../engine/store.js?v=20261022b';
+import { advance, agenda, prettyDate, fromISO } from '../engine/timeEngine.js?v=20261022b';
+import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022b';
+import { topbarHTML, refreshHUD, floater, fmt$ } from './shared.js?v=20261022b';
 
 let running = false, timer = null;
 const stop = () => { running = false; clearTimeout(timer); };

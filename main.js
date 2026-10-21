@@ -1,16 +1,16 @@
 // Entry point + hash router. No save → championship creation; save → Matrix.
-import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.js';
-import { applyTheme } from './engine/themeEngine.js';
-import { render as StartWizard } from './views/StartWizardView.js';
-import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js';
-import { render as HQ } from './views/HqDashboardView.js';
-import { render as RaceWeekend } from './views/RaceWeekendView.js';
-import { render as ResearchDev } from './views/ResearchDevView.js';
-import { render as Facilities } from './views/FacilitiesView.js';
-import { render as Standings } from './views/StandingsView.js';
-import { render as DevGraph } from './views/DevGraphView.js';
-import { render as SponsorsStaff } from './views/SponsorsStaffView.js';
-import { render as DriverMarket } from './views/DriverMarketView.js';
+import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.js?v=20261022b';
+import { applyTheme } from './engine/themeEngine.js?v=20261022b';
+import { render as StartWizard } from './views/StartWizardView.js?v=20261022b';
+import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022b';
+import { render as HQ } from './views/HqDashboardView.js?v=20261022b';
+import { render as RaceWeekend } from './views/RaceWeekendView.js?v=20261022b';
+import { render as ResearchDev } from './views/ResearchDevView.js?v=20261022b';
+import { render as Facilities } from './views/FacilitiesView.js?v=20261022b';
+import { render as Standings } from './views/StandingsView.js?v=20261022b';
+import { render as DevGraph } from './views/DevGraphView.js?v=20261022b';
+import { render as SponsorsStaff } from './views/SponsorsStaffView.js?v=20261022b';
+import { render as DriverMarket } from './views/DriverMarketView.js?v=20261022b';
 
 const ROUTES = {
   start: StartWizard, matrix: ChampionshipMatrix, hq: HQ, race: RaceWeekend, rd: ResearchDev,

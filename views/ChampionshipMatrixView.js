@@ -3,12 +3,12 @@
 // it renders ONLY from the canon data tables + the live save (points,
 // results, player DP). Nothing here is typed in by hand. Driver faces are
 // not used — a number tile in team colour stands in for the portrait.
-import { TEAMS, DRIVERS, driversOfTeam, teamById, logoOf } from '../data/teamsAndDrivers.js';
-import { CALENDAR } from '../data/calendar2026.js';
-import { getState, playerTeam, truePower } from '../engine/store.js';
-import { constructorStandings } from '../engine/raceSimulator.js';
-import { contractWindowReport } from '../engine/driverMarketEngine.js';
-import { prettyDate } from '../engine/timeEngine.js';
+import { TEAMS, DRIVERS, driversOfTeam, teamById, logoOf } from '../data/teamsAndDrivers.js?v=20261022b';
+import { CALENDAR } from '../data/calendar2026.js?v=20261022b';
+import { getState, playerTeam, truePower } from '../engine/store.js?v=20261022b';
+import { constructorStandings } from '../engine/raceSimulator.js?v=20261022b';
+import { contractWindowReport } from '../engine/driverMarketEngine.js?v=20261022b';
+import { prettyDate } from '../engine/timeEngine.js?v=20261022b';
 
 const ATR_MILESTONES = [
   { round: 7,  label: 'Next ATR Restriction Phase' },

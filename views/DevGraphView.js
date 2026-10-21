@@ -1,9 +1,9 @@
 // DEV GRAPH — every team in its own color, always (SPEC design rule).
 // The player team shows its fractional true power; rivals show base power
 // until the AI development simulation joins in a later build step.
-import { TEAMS } from '../data/teamsAndDrivers.js';
-import { getState, truePower } from '../engine/store.js';
-import { topbarHTML } from './shared.js';
+import { TEAMS } from '../data/teamsAndDrivers.js?v=20261022b';
+import { getState, truePower } from '../engine/store.js?v=20261022b';
+import { topbarHTML } from './shared.js?v=20261022b';
 
 export function render(root) {
   const s = getState();

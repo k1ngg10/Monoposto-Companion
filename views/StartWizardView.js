@@ -6,11 +6,11 @@
 // other screen reads it from the save. Works teams (Ferrari, Mercedes,
 // Red Bull Ford, Audi, Porsche) build their own PU: their section shows the
 // in-house unit locked in, no customer choice (SPEC §3).
-import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam, logoOf } from '../data/teamsAndDrivers.js';
-import { PU_SUPPLIERS, puById, OWNER_BACKGROUNDS, sponsorsOfTeam, totalSponsorValue } from '../data/sponsorsAndEngines.js';
-import { newSave } from '../engine/store.js';
-import { applyTheme } from '../engine/themeEngine.js';
-import { fmt$ } from './shared.js';
+import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam, logoOf } from '../data/teamsAndDrivers.js?v=20261022b';
+import { PU_SUPPLIERS, puById, OWNER_BACKGROUNDS, sponsorsOfTeam, totalSponsorValue } from '../data/sponsorsAndEngines.js?v=20261022b';
+import { newSave } from '../engine/store.js?v=20261022b';
+import { applyTheme } from '../engine/themeEngine.js?v=20261022b';
+import { fmt$ } from './shared.js?v=20261022b';
 
 // Performance order, same as the Matrix.
 const speedSum = t => driversOfTeam(t.id).reduce((a, d) => a + d.speed, 0);
@@ -86,10 +86,24 @@ function sliderHTML(kind, idx, count) {
   <div class="wz-dots" id="wz-${kind}-dots">${Array.from({ length: count }, (_, i) => `<button class="wz-dot ${i === idx ? 'on' : ''}" data-${kind}-dot="${i}" aria-label="Item ${i + 1}"></button>`).join('')}</div>`;
 }
 
+// The confirm button must always name the team on the card RIGHT NOW —
+// flipping updates the card via fillSlider, so the label syncs here too.
+// (Bug found by the user, 2026-10-22: the button kept the first team's
+// name while flipping, so the engine step never unlocked for the team
+// he was actually looking at.)
+function syncConfirmBtn() {
+  const btn = rootEl.querySelector('#wz-confirm-team');
+  if (!btn) return;
+  const pending = ORDER[W.teamIdx];
+  btn.textContent = (W.team && W.team === pending.id)
+    ? `✓ YOUR TEAM — ${pending.name.toUpperCase()}`
+    : `RACE WITH ${pending.name.toUpperCase()} →`;
+}
+
 function fillSlider(kind) {
   const card = rootEl.querySelector(`#wz-${kind}-card`);
   if (!card) return;
-  if (kind === 'team') card.innerHTML = teamCardHTML(ORDER[W.teamIdx]);
+  if (kind === 'team') { card.innerHTML = teamCardHTML(ORDER[W.teamIdx]); syncConfirmBtn(); }
   else {
     const team = teamById(W.team);
     card.innerHTML = puCardHTML(team.works ? puById(team.pu) : CUSTOMER_PUS[W.puIdx], team.works);

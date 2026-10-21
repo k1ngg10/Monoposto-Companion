@@ -1,0 +1,21 @@
+/* Fonts + design tokens. --team is set at runtime by engine/themeEngine.js
+   from the saved team — never hardcode a team color anywhere else. */
+@font-face { font-family: 'F1Display'; src: url('../assets/fonts/formula1-display/Formula1-Regular_web_0.ttf') format('truetype'); }
+@font-face { font-family: 'F1DisplayBold'; src: url('../assets/fonts/formula1-display/Formula1-Bold_web_0.ttf') format('truetype'); }
+@font-face { font-family: 'F1DisplayWide'; src: url('../assets/fonts/formula1-display/Formula1-Wide_web_0.ttf') format('truetype'); }
+@font-face { font-family: 'Titillium Web'; src: url('../assets/fonts/TitilliumWeb-Regular.ttf') format('truetype'); font-weight: 400; }
+@font-face { font-family: 'Titillium Web'; src: url('../assets/fonts/TitilliumWeb-SemiBold.ttf') format('truetype'); font-weight: 600; }
+@font-face { font-family: 'Titillium Web'; src: url('../assets/fonts/TitilliumWeb-Bold.ttf') format('truetype'); font-weight: 700; }
+
+:root {
+  --red: #e10600;
+  --gold: #f5c542;
+  --green: #37e08b;
+  --ink: #f4f4f6;
+  --dim: #9a9aa6;
+  --faint: #71717a;
+  --line: #26262e;
+  --panel: rgba(16, 16, 20, 0.92);
+  --team: #f5c542;      /* runtime — themeEngine overrides from the save */
+  --team-ink: #101014;
+}

@@ -3,7 +3,7 @@
 // it renders ONLY from the canon data tables + the live save (points,
 // results, player DP). Nothing here is typed in by hand. Driver faces are
 // not used — a number tile in team colour stands in for the portrait.
-import { TEAMS, DRIVERS, driversOfTeam, teamById } from '../data/teamsAndDrivers.js';
+import { TEAMS, DRIVERS, driversOfTeam, teamById, logoOf } from '../data/teamsAndDrivers.js';
 import { CALENDAR } from '../data/calendar2026.js';
 import { getState, playerTeam, truePower } from '../engine/store.js';
 import { constructorStandings } from '../engine/raceSimulator.js';
@@ -19,9 +19,9 @@ const ATR_MILESTONES = [
 const RESERVE_POOL = ['T. Pourchaire', 'F. Vesti', 'P. Aron'];
 
 function logoHTML(team) {
-  if (!team.logo) return `<span class="mx-wordmark" style="color:${team.color}">${team.short}</span>`;
-  const second = team.logo2 ? `<img class="mx-logo2" src="${team.logo2}" alt="">` : '';
-  return `<span class="mx-logos"><img class="mx-logo" src="${team.logo}" alt="${team.name} logo">${second}</span>`;
+  const src = logoOf(team);
+  if (!src) return `<span class="mx-wordmark" style="color:${team.color}">${team.short}</span>`;
+  return `<span class="mx-logos"><img class="mx-logo" src="${src}" alt="${team.name} logo"></span>`;
 }
 
 // Form comes from the driver's last LOGGED finish — nothing else. A driver

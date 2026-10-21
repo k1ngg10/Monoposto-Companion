@@ -31,7 +31,7 @@ function seasonMondays() {  // Mondays from pre-season start to the finale — p
 // --- weekly tick ---------------------------------------------------------------
 export function weeklyTick(state) {
   const weeks = seasonMondays();
-  let income = totalSponsorValue() * 0.40 / weeks;                 // 40% weekly bucket
+  let income = totalSponsorValue(state.teamId) * 0.40 / weeks;                 // 40% weekly bucket
   if (state.ownerBg === 'cfo') income *= 1.1;
   const levels = Object.values(state.facilities).reduce((a, b) => a + b, 0);
   const costs = 0.287 * (1 + 0.15 * (levels - 4));                  // draft scale — rises with facility level

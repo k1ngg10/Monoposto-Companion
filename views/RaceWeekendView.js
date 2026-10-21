@@ -2,6 +2,7 @@
 // Race length is selectable; distance = laps × lap length, computed live.
 // Results are logged AFTER the game is played — the app never dictates them.
 import { CALENDAR } from '../data/calendar2026.js';
+import { TRACK_MAPS } from '../data/trackMaps.js';
 import { driversOfTeam } from '../data/teamsAndDrivers.js';
 import { getState, save } from '../engine/store.js';
 import { logResult } from '../engine/raceSimulator.js';
@@ -21,11 +22,20 @@ const posOptions = sel => {
   return h;
 };
 
+// The side ribbon from the original Race Weekend prototype (user asked for
+// it back, 2026-10-21): a fixed rainbow-gradient strip down the left edge
+// with a slow-rising vertical "RACE WEEKEND" marquee.
+const ribbonHTML = () => {
+  const grp = `<div class="rw-grp">${'<span>Race Weekend</span>'.repeat(5)}</div>`;
+  return `<div class="rw-sidebar"><div class="rw-marquee">${grp}${grp}</div></div>`;
+};
+
 export function render(root) {
+  root.style.paddingLeft = '64px';   // room for the ribbon; main.js resets on route change
   const s = getState();
   const race = CALENDAR.find(r => !s.results[r.round] && r.sun >= s.date) || CALENDAR.find(r => !s.results[r.round]);
   if (!race) {
-    root.innerHTML = `${topbarHTML(true)}<h1 class="page">SEASON COMPLETE</h1>
+    root.innerHTML = `${ribbonHTML()}${topbarHTML(true)}<h1 class="page">SEASON COMPLETE</h1>
       <div class="sub">All 22 rounds are logged. Final tables are in Standings; the contract window resolves in Driver Market.</div>`;
     return;
   }
@@ -33,15 +43,17 @@ export function render(root) {
   const logged = s.results[race.round];
   let laps = logged?.laps || race.laps;
 
+  const mapSrc = TRACK_MAPS[race.round] || null;   // official F1 broadcast map, embedded (data/trackMaps.js)
   const draw = msg => {
     const dist = (laps * race.lapKm).toFixed(1);
     root.innerHTML = `
+      ${ribbonHTML()}
       ${topbarHTML(true)}
       <div class="hero">
         <div class="eyebrow">Season 1 · Round ${race.round}</div>
         <h1 class="page" style="font-size:clamp(2rem,6vw,3.4rem)">RACE WEEKEND</h1>
         <div class="circuit"><span style="font-size:1.25rem;vertical-align:-2px;margin-right:8px">${race.flag}</span>${race.circuit.toUpperCase()}</div>
-        ${race.map ? `<div class="trackframe"><img src="${race.map}" alt="${race.circuit} — official F1 track map"></div>` : ''}
+        ${mapSrc ? `<div class="trackframe"><img src="${mapSrc}" alt="${race.circuit} — official F1 track map"></div>` : ''}
         <div class="chips">
           <span class="mchip"><b>${rangeLabel(race)}</b></span>
           <span class="mchip">Lap <b>${race.lapKm.toFixed(3)}</b> km</span>

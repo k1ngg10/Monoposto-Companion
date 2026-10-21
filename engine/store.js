@@ -32,7 +32,7 @@ export function newSave({ teamId, ownerBg, activeSponsors, puId }) {
     puId: puId || team.pu,
     activeSponsors,                       // exactly 2 sponsor ids (objective cards)
     date: '2026-02-20',                   // pre-season start
-    cash: +(totalSponsorValue() * 0.30).toFixed(2),  // 30% signing bucket, Day 1
+    cash: +(totalSponsorValue(teamId) * 0.30).toFixed(2),  // 30% signing bucket of YOUR team board, Day 1
     rp: tier.rp,
     fanRating: tier.fan,
     facilities: { ...tier.facilities },   // facilityId -> level

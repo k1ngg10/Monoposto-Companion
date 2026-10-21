@@ -100,7 +100,16 @@ td.pts, th.pts { text-align: right; font-family: 'F1DisplayBold', sans-serif; fo
 @media (max-width: 560px) { .devbar { grid-template-columns: 104px 1fr 74px; } }
 
 /* hero (race weekend) */
-.sidebar-strip { position: fixed; left: 0; top: 0; bottom: 0; width: 0; }
+/* Race Weekend side ribbon — restored from the original prototype
+   (user, 2026-10-21): fixed rainbow strip, slow-rising vertical marquee. */
+.rw-sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 44px; z-index: 5; overflow: hidden;
+  background: linear-gradient(to top, #2563eb 0%, #7c3aed 30%, #c2185b 52%, #e10600 74%, #f59e0b 100%); }
+.rw-marquee { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column;
+  align-items: center; animation: rw-rise 26s linear infinite; will-change: transform; }
+.rw-marquee .rw-grp { display: flex; flex-direction: column; align-items: center; }
+.rw-marquee span { writing-mode: vertical-rl; font-family: 'F1DisplayBold', sans-serif; font-size: .84rem;
+  letter-spacing: .42em; color: rgba(255,255,255,.92); text-transform: uppercase; padding: 30px 0; white-space: nowrap; }
+@keyframes rw-rise { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 .hero { text-align: center; margin: 24px 0 8px; }
 .eyebrow { font-family: 'F1Display', sans-serif; letter-spacing: .3em; font-size: .88rem; color: #d8d8dd; text-transform: uppercase; }
 .circuit { font-family: 'F1DisplayBold', sans-serif; font-size: 1.1rem; letter-spacing: .14em; }

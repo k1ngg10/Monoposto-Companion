@@ -26,7 +26,9 @@ function route() {
   document.getElementById('siteheader').style.display = hasSave() ? 'flex' : 'none';
   document.getElementById('mainnav').style.display = hasSave() ? 'flex' : 'none';
   document.querySelectorAll('#mainnav a').forEach(a => a.classList.toggle('on', a.dataset.route === h));
-  ROUTES[h](document.getElementById('app'));
+  const app = document.getElementById('app');
+  app.style.paddingLeft = '';   // Race Weekend sets this for its side ribbon
+  ROUTES[h](app);
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);

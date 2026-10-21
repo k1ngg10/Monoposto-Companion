@@ -6,8 +6,8 @@
 // other screen reads it from the save. Works teams (Ferrari, Mercedes,
 // Red Bull Ford, Audi, Porsche) build their own PU: their section shows the
 // in-house unit locked in, no customer choice (SPEC §3).
-import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam } from '../data/teamsAndDrivers.js';
-import { SPONSORS, PU_SUPPLIERS, puById, OWNER_BACKGROUNDS, totalSponsorValue } from '../data/sponsorsAndEngines.js';
+import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam, logoOf } from '../data/teamsAndDrivers.js';
+import { PU_SUPPLIERS, puById, OWNER_BACKGROUNDS, sponsorsOfTeam, totalSponsorValue } from '../data/sponsorsAndEngines.js';
 import { newSave } from '../engine/store.js';
 import { applyTheme } from '../engine/themeEngine.js';
 import { fmt$ } from './shared.js';
@@ -38,9 +38,9 @@ function chosenPu() {
 }
 
 function logoWell(team) {
-  if (!team.logo) return `<span class="wz-wellword" style="color:${team.color}">${team.short}</span>`;
-  const second = team.logo2 ? `<img class="wz-logo2" src="${team.logo2}" alt="">` : '';
-  return `<img class="wz-logo" src="${team.logo}" alt="${team.name} logo">${second}`;
+  const src = logoOf(team);
+  if (!src) return `<span class="wz-wellword" style="color:${team.color}">${team.short}</span>`;
+  return `<img class="wz-logo" src="${src}" alt="${team.name} logo">`;
 }
 
 function teamCardHTML(team) {
@@ -133,6 +133,8 @@ function draw() {
   const pending = ORDER[W.teamIdx];
   const tier = team ? ENTRY_TIERS[tierOf(team)] : null;
   const pu = chosenPu();
+  const board = team ? sponsorsOfTeam(team.id) : [];
+  const boardTotal = team ? totalSponsorValue(team.id) : 0;
   const ready = !!(team && W.bg && W.sponsors.length === 2 && pu);
   let engineInner = '<div class="wz-stage"><div class="wz-card wz-ghost"></div></div>';
   if (team && team.works) engineInner = '<div class="wz-stage"><div class="wz-card" id="wz-pu-card"></div></div>';
@@ -167,15 +169,15 @@ function draw() {
     <section class="wz-section" id="wz-sec-details">
       <div class="wz-secnum">STEP 3</div>
       <h2 class="wz-sec">FINAL DETAILS</h2>
-      <p class="wz-secsub">Owner background and your 2 active sponsors — the other two pay in the background, no objective cards.</p>
+      <p class="wz-secsub">Owner background and your 2 active sponsors — every team has its own board; the rest pay in the background, no objective cards.</p>
       <div class="wz-lockwrap ${team ? '' : 'locked'}">
         <div class="wz-deth">OWNER BACKGROUND</div>
         <div class="pickgrid">${OWNER_BACKGROUNDS.map(b => `
           <button class="pick ${W.bg === b.id ? 'on' : ''}" data-bg="${b.id}">
             <div class="pt">${b.name}</div><div class="ps">${b.perk}</div></button>`).join('')}
         </div>
-        <div class="wz-deth" style="margin-top:22px">ACTIVE SPONSORS — PICK 2 OF 4 · BOARD PAYS ${fmt$(totalSponsorValue())} TOTAL</div>
-        <div class="pickgrid">${SPONSORS.map(sp => `
+        <div class="wz-deth" style="margin-top:22px">${team ? `${team.name.toUpperCase()} SPONSORS — PICK 2 OF ${board.length} · BOARD PAYS ${fmt$(boardTotal)} TOTAL` : 'TEAM SPONSORS'}</div>
+        <div class="pickgrid">${board.map(sp => `
           <button class="pick ${W.sponsors.includes(sp.id) ? 'on' : ''}" data-sp="${sp.id}">
             ${sp.logo ? `<img class="logo" src="${sp.logo}" alt="${sp.name}">` : ''}
             <div class="pt">${sp.name}</div><div class="ps">${sp.role} · ${sp.objectiveType}</div>
@@ -184,7 +186,7 @@ function draw() {
         ${team ? `<div class="wz-summary">
           <span><b>Team</b> ${team.name} (Power ${team.carPower})</span>
           <span><b>Engine</b> ${pu ? pu.name : '—'}</span>
-          <span><b>Signing cash</b> ${fmt$(totalSponsorValue() * 0.30)}</span>
+          <span><b>Signing cash</b> ${fmt$(boardTotal * 0.30)}</span>
           <span><b>Start RP</b> ${tier.rp}</span>
           <span><b>Fan rating</b> ${tier.fan}</span>
         </div>` : ''}
@@ -220,7 +222,7 @@ function draw() {
     const picked = ORDER[W.teamIdx];
     const changed = W.team !== picked.id;
     W.team = picked.id;
-    if (changed) W.puIdx = defaultPuIdx(picked);
+    if (changed) { W.puIdx = defaultPuIdx(picked); W.sponsors = []; }
     draw();
     const sec = root.querySelector('#wz-sec-engine');
     if (sec && typeof sec.scrollIntoView === 'function') sec.scrollIntoView({ behavior: 'smooth', block: 'start' });

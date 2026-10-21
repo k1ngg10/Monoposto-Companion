@@ -1,118 +1,251 @@
-// START WIZARD — the championship creation flow (SPEC §3).
-// The team is chosen HERE, once — with owner background, sponsors, facility
-// investment tier and PU. Every other screen reads it from the save.
-import { TEAMS, teamById, tierOf, ENTRY_TIERS } from '../data/teamsAndDrivers.js';
-import { SPONSORS, PU_SUPPLIERS, OWNER_BACKGROUNDS, totalSponsorValue } from '../data/sponsorsAndEngines.js';
-import { FACILITIES, facilityById } from '../data/facilitiesCatalog.js';
+// CHAMPIONSHIP CREATION — one scrolling desktop page, in the order the user
+// asked for (2026-10-21): pick your team on a card slider (the approved
+// PU-card component design), the page then scrolls itself down to the power
+// unit section — blurred and locked until a team is confirmed — then the
+// remaining selections, then START. The team is chosen HERE, once; every
+// other screen reads it from the save. Works teams (Ferrari, Mercedes,
+// Red Bull Ford, Audi, Porsche) build their own PU: their section shows the
+// in-house unit locked in, no customer choice (SPEC §3).
+import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam } from '../data/teamsAndDrivers.js';
+import { SPONSORS, PU_SUPPLIERS, puById, OWNER_BACKGROUNDS, totalSponsorValue } from '../data/sponsorsAndEngines.js';
 import { newSave } from '../engine/store.js';
 import { applyTheme } from '../engine/themeEngine.js';
 import { fmt$ } from './shared.js';
 
-let step = 0;
-const sel = { bg: null, team: null, sponsors: [], pu: null };
-const STEPS = ['Owner Background', 'Team', 'Sponsors', 'Facilities', 'Power Unit', 'Confirm'];
+// Performance order, same as the Matrix.
+const speedSum = t => driversOfTeam(t.id).reduce((a, d) => a + d.speed, 0);
+const ORDER = [...TEAMS].sort((a, b) => b.carPower - a.carPower || speedSum(b) - speedSum(a));
+const CUSTOMER_PUS = PU_SUPPLIERS.filter(p => p.id !== 'porsche');
+const PU_WELLS = {
+  mercedes: 'linear-gradient(160deg,#d9d9de,#8f8f96)',
+  ferrari: 'linear-gradient(160deg,#33100f,#150707)',
+  redbullford: 'linear-gradient(160deg,#1c2547,#0b0f22)',
+  audi: 'linear-gradient(160deg,#2b2b30,#131316)',
+  honda: '#000'
+};
 
-function finish() {
-  const s = newSave({ teamId: sel.team, ownerBg: sel.bg, activeSponsors: sel.sponsors, puId: sel.pu || teamById(sel.team).pu });
-  applyTheme(s.teamId);
-  location.hash = '#/hq';
+const W = { teamIdx: 0, puIdx: 0, team: null, bg: null, sponsors: [] };
+let rootEl = null;
+
+function defaultPuIdx(team) {
+  const i = CUSTOMER_PUS.findIndex(p => p.id === team.pu);
+  return i >= 0 ? i : 0;
+}
+function chosenPu() {
+  const team = W.team ? teamById(W.team) : null;
+  if (!team) return null;
+  return team.works ? puById(team.pu) : CUSTOMER_PUS[W.puIdx];
+}
+
+function logoWell(team) {
+  if (!team.logo) return `<span class="wz-wellword" style="color:${team.color}">${team.short}</span>`;
+  const second = team.logo2 ? `<img class="wz-logo2" src="${team.logo2}" alt="">` : '';
+  return `<img class="wz-logo" src="${team.logo}" alt="${team.name} logo">${second}`;
+}
+
+function teamCardHTML(team) {
+  const tier = ENTRY_TIERS[tierOf(team)];
+  const [d1, d2] = driversOfTeam(team.id);
+  const drv = d => `<div class="wz-drv"><span class="mx-num" style="background:${team.color}">${d.no}</span>
+    <span class="wz-drvname"><span class="fn">${d.first}</span> <span class="ln">${d.last}</span></span>
+    <span class="wz-drvstats">SPD <b>${d.speed}</b> · RSK <b>${d.risk}</b></span></div>`;
+  return `<div class="wz-well" style="background:linear-gradient(160deg, ${team.color}40, #101014 78%)">${logoWell(team)}</div>
+    <div class="wz-cbody">
+      <div class="wz-sname">${team.name.toUpperCase()}</div>
+      <div class="wz-ssub">${tier.label} · ${team.works ? 'Works team — own PU' : 'Customer team'}</div>
+      <div class="wz-stat"><div class="wz-srow"><span class="wz-lbl">Car Power</span><span class="wz-val">${team.carPower} / 10</span></div>
+        <div class="wz-bar power"><i data-w="${team.carPower * 10}"></i></div></div>
+      <div class="wz-drvh">DRIVERS</div>
+      ${drv(d1)}${drv(d2)}
+      <div class="wz-divider"></div>
+      <div class="wz-footrow"><span>START <b>${tier.rp} RP</b></span><span>FAN RATING <b>${tier.fan}</b></span></div>
+    </div>`;
+}
+
+function puCardHTML(pu, works) {
+  return `<div class="wz-well" style="background:${PU_WELLS[pu.id] || `linear-gradient(160deg,#2b2b30,#131316)`}">
+      ${pu.logo ? `<img class="wz-logo pu" src="${pu.logo}" alt="${pu.name} logo">` : `<span class="wz-wellword">${pu.name.toUpperCase()}</span>`}</div>
+    <div class="wz-cbody">
+      <div class="wz-sname">${pu.name.toUpperCase()}</div>
+      <div class="wz-stat"><div class="wz-srow"><span class="wz-lbl">Performance</span><span class="wz-val">${pu.performance}</span></div>
+        <div class="wz-bar perf"><i data-w="${pu.performance}"></i></div></div>
+      <div class="wz-stat"><div class="wz-srow"><span class="wz-lbl">Durability</span><span class="wz-val">${pu.durability}</span></div>
+        <div class="wz-bar dur"><i data-w="${pu.durability}"></i></div></div>
+      <div class="wz-divider"></div>
+      <div class="wz-cost"><div class="wz-costlbl">CONTRACT COST</div>
+        <div class="wz-costnum">${works ? 'IN-HOUSE' : `<span class="wz-cur">$</span>${pu.cost.toFixed(1)}M`}</div></div>
+    </div>`;
+}
+
+function sliderHTML(kind, idx, count) {
+  return `<div class="wz-stage" id="wz-${kind}-stage" tabindex="0">
+    <button class="wz-arrow" id="wz-${kind}-prev" aria-label="Previous">‹</button>
+    <div class="wz-card" id="wz-${kind}-card"></div>
+    <button class="wz-arrow" id="wz-${kind}-next" aria-label="Next">›</button>
+  </div>
+  <div class="wz-dots" id="wz-${kind}-dots">${Array.from({ length: count }, (_, i) => `<button class="wz-dot ${i === idx ? 'on' : ''}" data-${kind}-dot="${i}" aria-label="Item ${i + 1}"></button>`).join('')}</div>`;
+}
+
+function fillSlider(kind) {
+  const card = rootEl.querySelector(`#wz-${kind}-card`);
+  if (!card) return;
+  if (kind === 'team') card.innerHTML = teamCardHTML(ORDER[W.teamIdx]);
+  else {
+    const team = teamById(W.team);
+    card.innerHTML = puCardHTML(team.works ? puById(team.pu) : CUSTOMER_PUS[W.puIdx], team.works);
+  }
+  rootEl.querySelectorAll(`[data-${kind}-dot]`).forEach((d, i) => d.classList.toggle('on',
+    i === (kind === 'team' ? W.teamIdx : W.puIdx)));
+  const sel = rootEl.querySelector(`#wz-${kind}-sel`);
+  if (sel && kind === 'pu') {
+    const team = teamById(W.team), pu = chosenPu();
+    sel.textContent = team.works ? `${team.name} runs its own power unit — nothing to buy.` : `Selected engine: ${pu.name} — ${fmt$(pu.cost)} contract (draft figure). Flip the card to change it.`;
+  }
+  animateBars(card);
+}
+function animateBars(scope) {
+  if (typeof requestAnimationFrame !== 'function') { scope.querySelectorAll('.wz-bar i').forEach(i => i.style.width = i.dataset.w + '%'); return; }
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    scope.querySelectorAll('.wz-bar i').forEach(i => i.style.width = i.dataset.w + '%');
+  }));
+}
+function flip(kind, dir) {
+  if (kind === 'team') {
+    W.teamIdx = (W.teamIdx + dir + ORDER.length) % ORDER.length;
+  } else {
+    const team = teamById(W.team);
+    if (!team || team.works) return;
+    W.puIdx = (W.puIdx + dir + CUSTOMER_PUS.length) % CUSTOMER_PUS.length;
+  }
+  fillSlider(kind);
 }
 
 export function render(root) {
-  step = 0; sel.bg = null; sel.team = null; sel.sponsors = []; sel.pu = null;
-  draw(root);
+  rootEl = root;
+  W.teamIdx = Math.max(0, ORDER.findIndex(t => t.id === 'porsche'));
+  W.puIdx = 0; W.team = null; W.bg = null; W.sponsors = [];
+  draw();
 }
 
-function nav(root, canNext, nextLabel = 'CONTINUE') {
-  return `<div class="btnrow">
-    ${step > 0 ? '<button class="btn small" id="w-back">← BACK</button>' : ''}
-    <button class="btn small primary" id="w-next" ${canNext ? '' : 'disabled'}>${nextLabel}</button>
-  </div><div class="err" id="w-err"></div>`;
-}
+function draw() {
+  const root = rootEl;
+  const team = W.team ? teamById(W.team) : null;
+  const pending = ORDER[W.teamIdx];
+  const tier = team ? ENTRY_TIERS[tierOf(team)] : null;
+  const pu = chosenPu();
+  const ready = !!(team && W.bg && W.sponsors.length === 2 && pu);
+  let engineInner = '<div class="wz-stage"><div class="wz-card wz-ghost"></div></div>';
+  if (team && team.works) engineInner = '<div class="wz-stage"><div class="wz-card" id="wz-pu-card"></div></div>';
+  else if (team) engineInner = sliderHTML('pu', W.puIdx, CUSTOMER_PUS.length) + '<p class="wz-hint">Arrows, dots, or ← →</p>';
 
-function draw(root) {
-  const team = sel.team ? teamById(sel.team) : null;
-  let body = '';
-  if (step === 0) {
-    body = `<h1 class="page">START A NEW CHAMPIONSHIP</h1><div class="sub">Step 1 of 6 — who owns this team?</div>
-      <div class="pickgrid">${OWNER_BACKGROUNDS.map(b => `
-        <button class="pick ${sel.bg === b.id ? 'on' : ''}" data-bg="${b.id}">
-          <div class="pt">${b.name}</div><div class="ps">${b.perk}</div></button>`).join('')}
-      </div>${nav(root, !!sel.bg)}
-      <div class="foot">Testing? <a href="#" id="w-demo">Create the S1 Porsche save instantly →</a></div>`;
-  }
-  if (step === 1) {
-    body = `<h1 class="page">CHOOSE YOUR TEAM</h1><div class="sub">Step 2 of 6 — picked once, for the whole championship. There is no switching later.</div>
-      <div class="pickgrid">${TEAMS.map(t => `
-        <button class="pick ${sel.team === t.id ? 'on' : ''}" data-team="${t.id}">
-          <div class="pt"><span class="swatch" style="background:${t.color}"></span>${t.name}</div>
-          <div class="ps">Car Power ${t.carPower} · ${ENTRY_TIERS[tierOf(t)].label}${t.works ? ' · Works PU' : ''}</div>
-          <div class="pv">${ENTRY_TIERS[tierOf(t)].rp} RP start</div></button>`).join('')}
-      </div>${nav(root, !!sel.team)}`;
-  }
-  if (step === 2) {
-    body = `<h1 class="page">SPONSORS</h1><div class="sub">Step 3 of 6 — the S1 board pays ${fmt$(totalSponsorValue())} total (30% signing / 40% weekly / 30% goals). Pick the <b>2 active sponsors</b> whose objectives you'll chase; the rest pay in the background.</div>
-      <div class="pickgrid">${SPONSORS.map(sp => `
-        <button class="pick ${sel.sponsors.includes(sp.id) ? 'on' : ''}" data-sp="${sp.id}">
-          ${sp.logo ? `<img class="logo" src="${sp.logo}" alt="${sp.name}">` : ''}
-          <div class="pt">${sp.name}</div><div class="ps">${sp.role} · ${sp.objectiveType}</div>
-          <div class="pv">${fmt$(sp.value)} / season</div></button>`).join('')}
-      </div>${nav(root, sel.sponsors.length === 2)}`;
-  }
-  if (step === 3) {
-    const tier = ENTRY_TIERS[tierOf(team)];
-    body = `<h1 class="page">FACILITY INVESTMENT</h1><div class="sub">Step 4 of 6 — your entry tier sets the starting HQ. Upgrades are bought later, in Facilities, and take calendar time.</div>
-      <div class="pickgrid">${FACILITIES.map(f => `
-        <div class="pick"><div class="pt">${f.name}</div><div class="ps">${f.blurb}</div>
-        <div class="pv">Starts at Level ${tier.facilities[f.id]}</div></div>`).join('')}
-      </div>${nav(root, true)}`;
-  }
-  if (step === 4) {
-    if (team.works) {
-      sel.pu = team.pu;
-      const pu = PU_SUPPLIERS.find(p => p.id === team.pu);
-      body = `<h1 class="page">POWER UNIT</h1><div class="sub">Step 5 of 6 — ${team.name} is a works team: you build your own PU, so there is nothing to buy.</div>
-        <div class="pickgrid"><div class="pick on"><div class="pt">${pu ? pu.name : team.pu}</div>
-        <div class="ps">Performance ${pu?.performance ?? '—'} · Durability ${pu?.durability ?? '—'}</div></div></div>${nav(root, true)}`;
-    } else {
-      body = `<h1 class="page">POWER UNIT</h1><div class="sub">Step 5 of 6 — customer team: choose your supplier.</div>
-        <div class="pickgrid">${PU_SUPPLIERS.filter(p => p.id !== 'porsche').map(p => `
-          <button class="pick ${sel.pu === p.id ? 'on' : ''}" data-pu="${p.id}">
-            ${p.logo ? `<img class="logo" src="${p.logo}" alt="${p.name}">` : ''}
-            <div class="pt">${p.name}</div><div class="ps">Performance ${p.performance} · Durability ${p.durability}</div></button>`).join('')}
-        </div>${nav(root, !!sel.pu)}`;
-    }
-  }
-  if (step === 5) {
-    const tier = ENTRY_TIERS[tierOf(team)];
-    body = `<h1 class="page">CONFIRM YOUR CHAMPIONSHIP</h1><div class="sub">Step 6 of 6 — this creates the save. Everything can be tuned later in the data files; the team cannot be changed.</div>
-      <div class="glass" style="padding:20px 22px; line-height:2">
-        <div><b>Team:</b> ${team.name} (Power ${team.carPower} · ${tier.label})</div>
-        <div><b>Owner:</b> ${OWNER_BACKGROUNDS.find(b => b.id === sel.bg).name}</div>
-        <div><b>Active sponsors:</b> ${sel.sponsors.map(id => SPONSORS.find(s => s.id === id).name).join(' + ')}</div>
-        <div><b>Power unit:</b> ${(PU_SUPPLIERS.find(p => p.id === (sel.pu || team.pu)) || {}).name || team.pu}</div>
-        <div><b>Starting cash:</b> ${fmt$(totalSponsorValue() * 0.30)} (signing bonus) · <b>RP:</b> ${tier.rp} · <b>Fan rating:</b> ${tier.fan}</div>
-      </div>${nav(root, true, 'START CHAMPIONSHIP')}`;
-  }
-  root.innerHTML = body;
+  root.innerHTML = `<div class="wz-wrap">
+    <span class="wz-tag">NEW CHAMPIONSHIP</span>
+    <h1 class="wz-title">BUILD YOUR 2026 SEASON</h1>
+    <p class="wz-sub">Pick your team, then your engine — the page walks you down. Everything after that is the championship itself.</p>
+    <div class="foot" style="margin:0 0 8px">Testing? <a href="#" id="wz-demo">Create the S1 Porsche save instantly →</a></div>
 
-  root.querySelectorAll('[data-bg]').forEach(el => el.onclick = () => { sel.bg = el.dataset.bg; draw(root); });
-  root.querySelectorAll('[data-team]').forEach(el => el.onclick = () => { sel.team = el.dataset.team; sel.pu = null; draw(root); });
+    <section class="wz-section" id="wz-sec-team">
+      <div class="wz-secnum">STEP 1</div>
+      <h2 class="wz-sec">CHOOSE YOUR TEAM</h2>
+      <p class="wz-secsub">Flip through all 12 teams — car power, both drivers, starting RP. Picked once, for the whole championship; there is no switching later.</p>
+      ${sliderHTML('team', W.teamIdx, ORDER.length)}
+      <p class="wz-hint">Arrows, dots, or click the stage and use ← →</p>
+      <button class="btn primary wz-confirm" id="wz-confirm-team">${team && team.id === pending.id ? `✓ YOUR TEAM — ${team.name.toUpperCase()}` : `RACE WITH ${pending.name.toUpperCase()} →`}</button>
+    </section>
+
+    <section class="wz-section" id="wz-sec-engine">
+      <div class="wz-secnum">STEP 2</div>
+      <h2 class="wz-sec">POWER UNIT</h2>
+      <p class="wz-secsub">${team ? (team.works ? `${team.name} is a works team — you build your own engine.` : 'Customer team — choose your engine supplier. The card you stop on is your engine.') : 'Locked until you choose your team.'}</p>
+      <div class="wz-lockwrap ${team ? '' : 'locked'}">
+        ${engineInner}
+        ${team ? '' : '<div class="wz-lockchip">SELECT YOUR TEAM FIRST</div>'}
+      </div>
+      ${team ? `<p class="wz-sel" id="wz-pu-sel"></p>` : ''}
+    </section>
+
+    <section class="wz-section" id="wz-sec-details">
+      <div class="wz-secnum">STEP 3</div>
+      <h2 class="wz-sec">FINAL DETAILS</h2>
+      <p class="wz-secsub">Owner background and your 2 active sponsors — the other two pay in the background, no objective cards.</p>
+      <div class="wz-lockwrap ${team ? '' : 'locked'}">
+        <div class="wz-deth">OWNER BACKGROUND</div>
+        <div class="pickgrid">${OWNER_BACKGROUNDS.map(b => `
+          <button class="pick ${W.bg === b.id ? 'on' : ''}" data-bg="${b.id}">
+            <div class="pt">${b.name}</div><div class="ps">${b.perk}</div></button>`).join('')}
+        </div>
+        <div class="wz-deth" style="margin-top:22px">ACTIVE SPONSORS — PICK 2 OF 4 · BOARD PAYS ${fmt$(totalSponsorValue())} TOTAL</div>
+        <div class="pickgrid">${SPONSORS.map(sp => `
+          <button class="pick ${W.sponsors.includes(sp.id) ? 'on' : ''}" data-sp="${sp.id}">
+            ${sp.logo ? `<img class="logo" src="${sp.logo}" alt="${sp.name}">` : ''}
+            <div class="pt">${sp.name}</div><div class="ps">${sp.role} · ${sp.objectiveType}</div>
+            <div class="pv">${fmt$(sp.value)} / season</div></button>`).join('')}
+        </div>
+        ${team ? `<div class="wz-summary">
+          <span><b>Team</b> ${team.name} (Power ${team.carPower})</span>
+          <span><b>Engine</b> ${pu ? pu.name : '—'}</span>
+          <span><b>Signing cash</b> ${fmt$(totalSponsorValue() * 0.30)}</span>
+          <span><b>Start RP</b> ${tier.rp}</span>
+          <span><b>Fan rating</b> ${tier.fan}</span>
+        </div>` : ''}
+        ${team ? '' : '<div class="wz-lockchip">SELECT YOUR TEAM FIRST</div>'}
+      </div>
+      <button class="btn primary wz-start" id="wz-start" ${ready ? '' : 'disabled'}>START CHAMPIONSHIP →</button>
+      ${team && !ready ? '<div class="wz-hint">Pick an owner background and exactly 2 sponsors to start.</div>' : ''}
+    </section>
+  </div>`;
+
+  // Sliders ---------------------------------------------------------------
+  fillSlider('team');
+  if (team) fillSlider('pu');
+  const bindSlider = kind => {
+    const prev = root.querySelector(`#wz-${kind}-prev`), next = root.querySelector(`#wz-${kind}-next`);
+    if (prev) prev.onclick = () => flip(kind, -1);
+    if (next) next.onclick = () => flip(kind, 1);
+    root.querySelectorAll(`[data-${kind}-dot]`).forEach(d => d.onclick = () => {
+      if (kind === 'team') W.teamIdx = +d.dataset.teamDot; else W.puIdx = +d.dataset.puDot;
+      fillSlider(kind);
+    });
+    const stage = root.querySelector(`#wz-${kind}-stage`);
+    if (stage) stage.onkeydown = e => {
+      if (e.key === 'ArrowLeft') { flip(kind, -1); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { flip(kind, 1); e.preventDefault(); }
+    };
+  };
+  bindSlider('team');
+  if (team && !team.works) bindSlider('pu');
+
+  const confirmBtn = root.querySelector('#wz-confirm-team');
+  if (confirmBtn) confirmBtn.onclick = () => {
+    const picked = ORDER[W.teamIdx];
+    const changed = W.team !== picked.id;
+    W.team = picked.id;
+    if (changed) W.puIdx = defaultPuIdx(picked);
+    draw();
+    const sec = root.querySelector('#wz-sec-engine');
+    if (sec && typeof sec.scrollIntoView === 'function') sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  root.querySelectorAll('[data-bg]').forEach(el => el.onclick = () => { W.bg = el.dataset.bg; draw(); });
   root.querySelectorAll('[data-sp]').forEach(el => el.onclick = () => {
     const id = el.dataset.sp;
-    sel.sponsors = sel.sponsors.includes(id) ? sel.sponsors.filter(x => x !== id)
-      : sel.sponsors.length < 2 ? [...sel.sponsors, id] : sel.sponsors;
-    draw(root);
+    W.sponsors = W.sponsors.includes(id) ? W.sponsors.filter(x => x !== id)
+      : W.sponsors.length < 2 ? [...W.sponsors, id] : W.sponsors;
+    draw();
   });
-  root.querySelectorAll('[data-pu]').forEach(el => el.onclick = () => { sel.pu = el.dataset.pu; draw(root); });
-  const back = root.querySelector('#w-back');
-  if (back) back.onclick = () => { step--; draw(root); };
-  const next = root.querySelector('#w-next');
-  if (next) next.onclick = () => { if (step === 5) finish(); else { step++; draw(root); } };
-  const demo = root.querySelector('#w-demo');
+
+  const start = root.querySelector('#wz-start');
+  if (start) start.onclick = () => {
+    if (!ready) return;
+    const s = newSave({ teamId: W.team, ownerBg: W.bg, activeSponsors: W.sponsors, puId: pu.id });
+    applyTheme(s.teamId);
+    location.hash = '#/matrix';
+  };
+  const demo = root.querySelector('#wz-demo');
   if (demo) demo.onclick = e => {
     e.preventDefault();
-    sel.bg = 'head-engineer'; sel.team = 'porsche'; sel.sponsors = ['applemusic', 'tagheuer']; sel.pu = 'porsche';
-    finish();
+    const s = newSave({ teamId: 'porsche', ownerBg: 'head-engineer', activeSponsors: ['applemusic', 'tagheuer'], puId: 'porsche' });
+    applyTheme(s.teamId);
+    location.hash = '#/matrix';
   };
 }

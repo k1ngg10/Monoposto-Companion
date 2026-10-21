@@ -26,6 +26,17 @@
     <a href="#/sponsors" data-route="sponsors">Sponsors &amp; Staff</a>
     <a href="#/market" data-route="market">Driver Contracts</a>
   </nav>
+  <div class="sitesettings" id="sitesettings">
+    <button class="settingsbtn" id="settings-btn" aria-label="Settings" title="Settings">⚙</button>
+    <div class="settingsmenu" id="settings-menu" hidden>
+      <div class="settingsmenu-h">SETTINGS</div>
+      <button id="set-export">Export save (JSON)</button>
+      <label class="setimport" for="set-import">Import save (JSON)</label>
+      <input type="file" id="set-import" accept="application/json,.json" hidden>
+      <div class="settingsmenu-div"></div>
+      <button id="set-delete" class="danger">Delete championship…</button>
+    </div>
+  </div>
 </header>
 <div id="app"></div>
 <script type="module" src="main.js"></script>

@@ -8,16 +8,25 @@ import { driverStandings } from './raceSimulator.js';
 export function contractWindowReport(state) {
   const standings = driverStandings(state);
   const positionOf = id => standings.findIndex(s => s.driver.id === id) + 1;
+  // A standings position only means something once the driver has a logged
+  // finish — before that there is no position, and no rule may fire off one.
+  const hasResult = id => Object.values(state.results).some(r => r.entries && id in r.entries);
   const report = [];
 
   // Rule 1 — veteran retirement check (35+): at risk if their car is below
-  // Power 6 OR they sit outside the Top 10 at the window.
+  // Power 6 OR they finish outside the Top 10 at Abu Dhabi. The standings
+  // trigger can only be judged on real logged results.
   for (const d of DRIVERS.filter(x => (x.age || 0) >= 35)) {
     const team = teamById(d.team);
-    const atRisk = team.carPower < 6 || positionOf(d.id) > 10;
-    if (atRisk) report.push({ rule: 1, driver: d, team,
+    const powerTrigger = team.carPower < 6;
+    const posTrigger = hasResult(d.id) && positionOf(d.id) > 10;
+    if (powerTrigger || posTrigger) report.push({ rule: 1, driver: d, team,
       risk: (d.id === 'ALO' || d.id === 'HAM') ? 40 : 50,
-      reason: `Age ${d.age} · ${team.name} Power ${team.carPower} · P${positionOf(d.id)} in the standings` });
+      triggers: [
+        ...(powerTrigger ? [`car Power ${team.carPower} < 6`] : []),
+        ...(posTrigger ? [`P${positionOf(d.id)} in the standings — outside the Top 10`] : [])
+      ],
+      reason: `Age ${d.age} · ${team.name} Power ${team.carPower} · ${hasResult(d.id) ? `P${positionOf(d.id)} in the standings` : 'no classified finish logged yet'}` });
   }
 
   // Rule 2 — a #2 driver below 35% of their teammate's points: seat at risk.
@@ -29,7 +38,8 @@ export function contractWindowReport(state) {
     const [top, low] = pa >= pb ? [a, b] : [b, a];
     const topPts = Math.max(pa, pb), lowPts = Math.min(pa, pb);
     if (topPts > 0 && lowPts < 0.35 * topPts) report.push({ rule: 2, driver: low, team: teamById(teamId),
-      risk: 100, reason: `${lowPts} pts vs teammate ${top.name}'s ${topPts} — below the 35% line` });
+      risk: 100, ratio: Math.round((lowPts / topPts) * 100),
+      reason: `${lowPts} pts vs teammate ${top.name}'s ${topPts} — ${Math.round((lowPts / topPts) * 100)}% of teammate, below the 35% line` });
   }
 
   // Rule 3 — prestige ladder (informational): who qualifies for top seats.

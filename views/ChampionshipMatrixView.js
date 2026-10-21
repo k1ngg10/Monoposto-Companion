@@ -4,9 +4,9 @@
 // results, player DP). Nothing here is typed in by hand. Driver faces are
 // not used — a number tile in team colour stands in for the portrait.
 import { TEAMS, DRIVERS, driversOfTeam, teamById } from '../data/teamsAndDrivers.js';
-import { CALENDAR, nextRace } from '../data/calendar2026.js';
+import { CALENDAR } from '../data/calendar2026.js';
 import { getState, playerTeam, truePower } from '../engine/store.js';
-import { constructorStandings, driverStandings } from '../engine/raceSimulator.js';
+import { constructorStandings } from '../engine/raceSimulator.js';
 import { contractWindowReport } from '../engine/driverMarketEngine.js';
 import { prettyDate } from '../engine/timeEngine.js';
 
@@ -15,7 +15,8 @@ const ATR_MILESTONES = [
   { round: 14, label: 'Second ATR Phase' },
   { round: 16, label: 'Regulation Reset · Major Update Expected' }
 ];
-const RESERVE_POOL = ['L. Lawson', 'F. Colapinto', 'T. Pourchaire'];
+// Canon reserve pool (SPEC §6, Rule 3) — backmarker/midfield seats fill from here.
+const RESERVE_POOL = ['T. Pourchaire', 'F. Vesti', 'P. Aron'];
 
 function logoHTML(team) {
   if (!team.logo) return `<span class="mx-wordmark" style="color:${team.color}">${team.short}</span>`;
@@ -23,19 +24,33 @@ function logoHTML(team) {
   return `<span class="mx-logos"><img class="mx-logo" src="${team.logo}" alt="${team.name} logo">${second}</span>`;
 }
 
-function statusFor(driver, report, posInStandings) {
+// Form comes from the driver's last LOGGED finish — nothing else. A driver
+// with no result in the save has no form to show, whatever the points table
+// ordering happens to look like.
+function lastFinish(state, driverId) {
+  const rounds = Object.keys(state.results).map(Number).sort((a, b) => b - a);
+  for (const r of rounds) {
+    const entries = state.results[r].entries || {};
+    if (driverId in entries) return { round: r, pos: entries[driverId] }; // pos null = DNF
+  }
+  return null;
+}
+
+function statusFor(driver, report, state) {
   const hit = report.find(r => r.driver.id === driver.id);
   if (hit && hit.rule === 1) return { label: 'Retirement Watch', cls: 'bad' };
   if (hit && hit.rule === 2) return { label: 'Hot Seat', cls: 'bad' };
-  if (!posInStandings) return { label: 'Season Start', cls: '' };
-  if (posInStandings <= 3) return { label: 'Peak Form', cls: 'good' };
-  if (posInStandings <= 10) return { label: 'Consistent', cls: 'good' };
+  const lf = lastFinish(state, driver.id);
+  if (!lf) return { label: 'Season Start', cls: '' };
+  if (!lf.pos) return { label: 'DNF — Last Race', cls: 'bad' };
+  if (lf.pos <= 3) return { label: 'Peak Form', cls: 'good' };
+  if (lf.pos <= 10) return { label: 'Consistent', cls: 'good' };
   return { label: 'Stable', cls: '' };
 }
 
-function driverCell(driver, report, posMap) {
+function driverCell(driver, report, state) {
   const team = teamById(driver.team);
-  const st = statusFor(driver, report, posMap.get(driver.id));
+  const st = statusFor(driver, report, state);
   return `<div class="mx-driver">
     <span class="mx-num" style="background:${team.color}">${driver.no}</span>
     <span class="mx-dmeta">
@@ -51,10 +66,12 @@ export function render(root) {
   const loggedRounds = Object.keys(s.results).length;
   const currentRound = Math.min(22, loggedRounds + 1);
   const race = CALENDAR.find(r => r.round === currentRound);
-  const next = nextRace(s.date) || race;
+  // "Next round" IS the current unlogged round — the same one the header
+  // shows. (Deriving it from the calendar date instead made the panel jump
+  // a round ahead of the header whenever the save's date had advanced.)
+  const next = race;
   const constructors = constructorStandings(s);
   const ctorPts = new Map(constructors.map(c => [c.team.id, c.points]));
-  const posMap = new Map(driverStandings(s).map((r, i) => [r.driver.id, loggedRounds ? i + 1 : 0]));
   const { report } = contractWindowReport(s);
 
   // Matrix order: performance order (Car Power, then combined driver speed).
@@ -92,8 +109,9 @@ export function render(root) {
 
   const retirees = report.filter(r => r.rule === 1);
   const hotSeat = report.filter(r => r.rule === 2);
+  const anyPoints = Object.values(s.points).some(p => p > 0);
   const radarList = (list, empty) => list.length
-    ? list.map(r => `<div class="mx-radar-row"><span class="mx-num sm" style="background:${r.team.color}">${r.driver.no}</span><span class="mx-radar-name"><span class="fn">${r.driver.first}</span> <span class="ln">${r.driver.last}</span><small>${r.team.name} · ${r.reason}</small></span></div>`).join('')
+    ? list.map(r => `<div class="mx-radar-row"><span class="mx-num sm" style="background:${r.team.color}">${r.driver.no}</span><span class="mx-radar-name"><span class="fn">${r.driver.first}</span> <span class="ln">${r.driver.last}</span><small>${r.team.name} · ${r.reason}</small></span>${r.risk ? `<span class="mx-risk">${r.risk}%</span>` : ''}</div>`).join('')
     : `<div class="mx-radar-empty">${empty}</div>`;
 
   root.innerHTML = `<div class="mx-wrap">
@@ -134,8 +152,8 @@ export function render(root) {
               <td><div class="mx-team"><span class="mx-colorbar" style="background:${t.color}"></span>${logoHTML(t)}<span class="mx-tname">${t.name.toUpperCase()}</span></div></td>
               <td class="c"><span class="mx-power" style="border-color:${t.color}">${powerOf(t)}</span></td>
               <td><div class="mx-prog"><span class="mx-track"><span class="mx-fill" style="width:${pct}%;background:${t.color}"></span></span><b>${pct}%</b></div></td>
-              <td>${driverCell(d1, report, posMap)}</td>
-              <td>${driverCell(d2, report, posMap)}</td>
+              <td>${driverCell(d1, report, s)}</td>
+              <td>${driverCell(d2, report, s)}</td>
             </tr>`;
           }).join('')}
           </tbody>
@@ -182,18 +200,18 @@ export function render(root) {
           <div class="mx-radar-cols">
             <div>
               <div class="mx-radar-h bad">● RETIREMENT WATCH</div>
-              <div class="mx-radar-sub">Veterans 35+ flagged by Rule 1</div>
-              ${radarList(retirees, 'No veteran currently flagged.')}
+              <div class="mx-radar-sub">RULE 1 — age 35+ AND (car Power &lt; 6 OR outside the Top 10 at Abu Dhabi) → retirement roll at the % shown</div>
+              ${radarList(retirees, 'No veteran meets the Rule 1 triggers.')}
             </div>
             <div>
               <div class="mx-radar-h warn">● HOT SEAT / SACK RISK</div>
-              <div class="mx-radar-sub">Below 35% of teammate (Rule 2)</div>
-              ${radarList(hotSeat, 'No driver below the 35% line yet.')}
+              <div class="mx-radar-sub">RULE 2 — under 35% of your teammate's points → seat terminated</div>
+              ${radarList(hotSeat, anyPoints ? 'Nobody is below the 35% line.' : 'No points logged yet — Rule 2 arms once results are in.')}
             </div>
             <div>
               <div class="mx-radar-h info">● RESERVE POOL</div>
-              <div class="mx-radar-sub">Potential 2027+ seats</div>
-              ${RESERVE_POOL.map(n => `<div class="mx-radar-row"><span class="mx-radar-name"><span class="ln">${n.toUpperCase()}</span><small>Reserve</small></span></div>`).join('')}
+              <div class="mx-radar-sub">RULE 3 — Power 4–5 seats fill from this pool; top seats (Power 7–9) need Speed 8+ or a 20+ pt win over a teammate</div>
+              ${RESERVE_POOL.map(n => `<div class="mx-radar-row"><span class="mx-radar-name"><span class="ln">${n.toUpperCase()}</span><small>F2 / reserve pool · potential 2027+ seat</small></span></div>`).join('')}
             </div>
           </div>
           <a class="btn primary mx-simbtn" href="#/market">OPEN DRIVER MARKET →</a>

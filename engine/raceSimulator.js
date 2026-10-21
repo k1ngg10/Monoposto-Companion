@@ -38,14 +38,38 @@ export function logResult(state, round, entries, conditions, laps) {
   return { rpGained };
 }
 
+// F1 countback: on equal points, most wins wins, then most 2nds, and so on
+// down the finishing positions — computed from the finishes actually logged.
+// A driver with no logged finish has an all-zero countback and no business
+// outranking anyone on list order alone.
+function finishCounts(state, driverId) {
+  const counts = new Array(24).fill(0);
+  for (const r of Object.values(state.results)) {
+    const pos = r.entries?.[driverId];
+    if (pos) counts[pos - 1]++;
+  }
+  return counts;
+}
 export function driverStandings(state) {
-  return DRIVERS.map(d => ({ driver: d, points: state.points[d.id] || 0 }))
-                .sort((a, b) => b.points - a.points);
+  return DRIVERS.map(d => ({ driver: d, points: state.points[d.id] || 0, counts: finishCounts(state, d.id) }))
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      for (let i = 0; i < 24; i++) if (b.counts[i] !== a.counts[i]) return b.counts[i] - a.counts[i];
+      return a.driver.id.localeCompare(b.driver.id);
+    });
 }
 export function constructorStandings(state) {
-  const totals = {};
-  for (const d of DRIVERS) totals[d.team] = (totals[d.team] || 0) + (state.points[d.id] || 0);
-  return Object.entries(totals).map(([teamId, points]) => ({ team: teamById(teamId), points }))
-                               .sort((a, b) => b.points - a.points);
+  const totals = {}, counts = {};
+  for (const d of DRIVERS) {
+    totals[d.team] = (totals[d.team] || 0) + (state.points[d.id] || 0);
+    const c = finishCounts(state, d.id), t = counts[d.team] || (counts[d.team] = new Array(24).fill(0));
+    for (let i = 0; i < 24; i++) t[i] += c[i];
+  }
+  return Object.entries(totals).map(([teamId, points]) => ({ team: teamById(teamId), points, counts: counts[teamId] }))
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      for (let i = 0; i < 24; i++) if (b.counts[i] !== a.counts[i]) return b.counts[i] - a.counts[i];
+      return a.team.id.localeCompare(b.team.id);
+    });
 }
 export const teamDrivers = state => driversOfTeam(state.teamId);

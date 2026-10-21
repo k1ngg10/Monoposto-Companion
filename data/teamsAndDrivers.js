@@ -1,18 +1,18 @@
 // THE GRID — SPEC.md §5 canon (user's 2026-10-19 revision).
 // Edit numbers HERE only; every screen renders from this table.
 export const TEAMS = [
-  { id: 'porsche',  name: 'Apple Porsche',        short: 'POR', color: '#f5c542', carPower: 5, pu: 'porsche', works: true,  tier: 'newcomer' }, // Newcomer by canon despite Power 5
-  { id: 'redbull',  name: 'Red Bull Ford',        short: 'RBR', color: '#33479e', carPower: 6, pu: 'redbullford', works: true },
-  { id: 'ferrari',  name: 'Ferrari HP',           short: 'FER', color: '#e8002d', carPower: 6, pu: 'ferrari', works: true },
-  { id: 'mclaren',  name: 'McLaren Mastercard',   short: 'MCL', color: '#ff8000', carPower: 6, pu: 'mercedes', works: false },
-  { id: 'mercedes', name: 'Mercedes-AMG Petronas',short: 'MER', color: '#27f4d2', carPower: 7, pu: 'mercedes', works: true },
-  { id: 'byd',      name: 'BYD Huawei',           short: 'BYD', color: '#c8102e', carPower: 5, pu: 'tbd', works: false },
-  { id: 'audi',     name: 'Audi Revolut',         short: 'AUD', color: '#c7c7cc', carPower: 5, pu: 'audi', works: true },
-  { id: 'bmw',      name: 'BMW M iQOO',           short: 'BMW', color: '#ffd500', carPower: 4, pu: 'tbd', works: false },
-  { id: 'aston',    name: 'Aston Martin Aramco',  short: 'AMR', color: '#229971', carPower: 5, pu: 'honda', works: false },
-  { id: 'cadillac', name: 'Cadillac TWG',         short: 'CAD', color: '#9a9aa3', carPower: 4, pu: 'ferrari', works: false },
-  { id: 'williams', name: 'Williams Atlassian',   short: 'WIL', color: '#64c4ff', carPower: 5, pu: 'mercedes', works: false },
-  { id: 'haas',     name: 'Haas TGR',             short: 'HAA', color: '#e8e8e8', carPower: 4, pu: 'ferrari', works: false }
+  { id: 'porsche',  name: 'Apple Porsche',        short: 'POR', color: '#f5c542', carPower: 5, pu: 'porsche', works: true,  tier: 'newcomer', logo: 'assets/logos/team-apple.svg', logo2: 'assets/logos/team-porsche.svg' }, // Newcomer by canon despite Power 5
+  { id: 'redbull',  name: 'Red Bull Ford',        short: 'RBR', color: '#33479e', carPower: 6, pu: 'redbullford', works: true, logo: 'assets/logos/team-redbull.svg' },
+  { id: 'ferrari',  name: 'Ferrari HP',           short: 'FER', color: '#e8002d', carPower: 6, pu: 'ferrari', works: true, logo: 'assets/logos/pu-ferrari-hp.svg' },
+  { id: 'mclaren',  name: 'McLaren Mastercard',   short: 'MCL', color: '#ff8000', carPower: 6, pu: 'mercedes', works: false, logo: 'assets/logos/team-mclaren.svg' },
+  { id: 'mercedes', name: 'Mercedes-AMG Petronas',short: 'MER', color: '#27f4d2', carPower: 7, pu: 'mercedes', works: true, logo: 'assets/logos/pu-mercedes.svg' },
+  { id: 'byd',      name: 'BYD Huawei',           short: 'BYD', color: '#c8102e', carPower: 5, pu: 'tbd', works: false, logo: null },
+  { id: 'audi',     name: 'Audi Revolut',         short: 'AUD', color: '#c7c7cc', carPower: 5, pu: 'audi', works: true, logo: 'assets/logos/pu-audi.svg' },
+  { id: 'bmw',      name: 'BMW M iQOO',           short: 'BMW', color: '#ffd500', carPower: 4, pu: 'tbd', works: false, logo: 'assets/logos/team-bmw.svg' },
+  { id: 'aston',    name: 'Aston Martin Aramco',  short: 'AMR', color: '#229971', carPower: 5, pu: 'honda', works: false, logo: 'assets/logos/team-aston.svg' },
+  { id: 'cadillac', name: 'Cadillac TWG',         short: 'CAD', color: '#9a9aa3', carPower: 4, pu: 'ferrari', works: false, logo: 'assets/logos/team-cadillac.svg' },
+  { id: 'williams', name: 'Williams Atlassian',   short: 'WIL', color: '#64c4ff', carPower: 5, pu: 'mercedes', works: false, logo: null },
+  { id: 'haas',     name: 'Haas TGR',             short: 'HAA', color: '#e8e8e8', carPower: 4, pu: 'ferrari', works: false, logo: null }
 ];
 
 // speed / risk are Monoposto integers (SPEC §5 canon). age only where the

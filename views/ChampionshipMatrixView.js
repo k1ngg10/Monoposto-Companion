@@ -144,32 +144,44 @@ export function render(root) {
   let tableHTML = '';
   if (matrixViewMode === 'all') {
     tableHTML = `
-      <table class="mx-table">
-        <thead><tr>
-          <th>POS</th><th>TEAM &amp; HQ</th>
-          <th class="c">MONOPOSTO<br>CAR POWER (1–10)</th>
-          <th>R&amp;D PROGRESS<br>TO NEXT LEVEL</th>
-          <th>DRIVER 1 <span class="mx-th-sub">SPD&nbsp;&nbsp;RSK&nbsp;&nbsp;FORM / STATUS (CLICK FOR DOSSIER)</span></th>
-          <th>DRIVER 2 <span class="mx-th-sub">SPD&nbsp;&nbsp;RSK&nbsp;&nbsp;FORM / STATUS (CLICK FOR DOSSIER)</span></th>
-        </tr></thead>
-        <tbody>
-        ${ordered.map((t, i) => {
-          const [d1, d2] = driversOfTeam(t.id, s);
-          const pct = progressOf(t);
-          const livePwr = teamMonopostoPower(t.id, s);
-          const syncedPwr = s.monopostoSynced?.teams?.[t.id] ?? t.carPower;
-          const pwrChanged = livePwr !== syncedPwr;
-          return `<tr class="${t.id === s.teamId ? 'me' : ''}">
-            <td class="mx-pos">${i + 1}</td>
-            <td><div class="mx-team"><span class="mx-colorbar" style="background:${t.color}"></span>${logoHTML(t)}<div><span class="mx-tname">${t.name.toUpperCase()}</span><div style="font-size:.66rem;color:var(--dim);letter-spacing:.06em">${t.hq.toUpperCase()} HQ</div></div></div></td>
-            <td class="c"><span class="mx-power" style="border-color:${pwrChanged ? 'var(--gold)' : t.color}" title="True Fractional Power: ${teamTruePower(t.id, s).toFixed(2)}">${pwrChanged ? `<small style="font-size:.7rem;color:var(--dim);text-decoration:line-through;margin-right:2px">${syncedPwr}</small>${livePwr}` : livePwr}</span></td>
-            <td><div class="mx-prog"><span class="mx-track"><span class="mx-fill" style="width:${pct}%;background:${t.color}"></span></span><b>${pct}%</b></div></td>
-            <td>${driverCell(d1, report, s)}</td>
-            <td>${driverCell(d2, report, s)}</td>
-          </tr>`;
-        }).join('')}
-        </tbody>
-      </table>
+      <div class="mx-table-scroll">
+        <table class="mx-table mx-table-all">
+          <thead><tr>
+            <th>POS</th>
+            <th>TEAM &amp; HQ</th>
+            <th class="c">MONOPOSTO<br>CAR POWER (1–10)</th>
+            <th>R&amp;D PROGRESS<br>TO NEXT LEVEL</th>
+            <th>DRIVER 1 <span class="mx-th-sub">SPD · RSK · STATUS (CLICK FOR DOSSIER)</span></th>
+            <th>DRIVER 2 <span class="mx-th-sub">SPD · RSK · STATUS (CLICK FOR DOSSIER)</span></th>
+          </tr></thead>
+          <tbody>
+          ${ordered.map((t, i) => {
+            const [d1, d2] = driversOfTeam(t.id, s);
+            const pct = progressOf(t);
+            const livePwr = teamMonopostoPower(t.id, s);
+            const syncedPwr = s.monopostoSynced?.teams?.[t.id] ?? t.carPower;
+            const pwrChanged = livePwr !== syncedPwr;
+            return `<tr class="${t.id === s.teamId ? 'me' : ''}">
+              <td class="mx-pos">${i + 1}</td>
+              <td>
+                <div class="mx-team">
+                  <span class="mx-colorbar" style="background:${t.color}"></span>
+                  ${logoHTML(t)}
+                  <div class="mx-team-meta">
+                    <span class="mx-tname">${t.name.toUpperCase()}</span>
+                    <div class="mx-thq">${t.hq.toUpperCase()} HQ</div>
+                  </div>
+                </div>
+              </td>
+              <td class="c"><span class="mx-power" style="border-color:${pwrChanged ? 'var(--gold)' : t.color}" title="True Fractional Power: ${teamTruePower(t.id, s).toFixed(2)}">${pwrChanged ? `<small style="font-size:.7rem;color:var(--dim);text-decoration:line-through;margin-right:2px">${syncedPwr}</small>${livePwr}` : livePwr}</span></td>
+              <td><div class="mx-prog"><span class="mx-track"><span class="mx-fill" style="width:${pct}%;background:${t.color}"></span></span><b>${pct}%</b></div></td>
+              <td>${driverCell(d1, report, s)}</td>
+              <td>${driverCell(d2, report, s)}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
   } else if (matrixViewMode === 'sliders') {
     tableHTML = `
@@ -179,41 +191,68 @@ export function render(root) {
         </div>
         ${diffs.length ? `<button class="btn primary small" id="mx-Sliders-syncall">✓ CONFIRM ALL ${diffs.length} SLIDERS APPLIED</button>` : `<span class="tag good">✓ ALL SLIDERS SYNCED</span>`}
       </div>
-      <table class="mx-table">
-        <thead><tr>
-          <th>POS</th>
-          <th>TEAM</th>
-          <th class="c">CAR POWER<br>SLIDER (1–10)</th>
-          <th>DRIVER 1<br><span class="mx-th-sub">SPEED (1–10) &nbsp;|&nbsp; RISK (1–10)</span></th>
-          <th>DRIVER 2<br><span class="mx-th-sub">SPEED (1–10) &nbsp;|&nbsp; RISK (1–10)</span></th>
-          <th class="c">SYNC STATUS</th>
-        </tr></thead>
-        <tbody>
-        ${ordered.map((t, i) => {
-          const [d1, d2] = driversOfTeam(t.id, s);
-          const lPwr = teamMonopostoPower(t.id, s);
-          const sPwr = s.monopostoSynced?.teams?.[t.id] ?? t.carPower;
-          const l1 = d1 ? driverLiveStats(d1.id, s) : { speed: 7, risk: 6 };
-          const s1 = d1 ? (s.monopostoSynced?.drivers?.[d1.id] || { speed: d1.speed, risk: d1.risk }) : { speed: 7, risk: 6 };
-          const l2 = d2 ? driverLiveStats(d2.id, s) : { speed: 7, risk: 6 };
-          const s2 = d2 ? (s.monopostoSynced?.drivers?.[d2.id] || { speed: d2.speed, risk: d2.risk }) : { speed: 7, risk: 6 };
-          const rowChanged = lPwr !== sPwr || l1.speed !== s1.speed || l1.risk !== s1.risk || l2.speed !== s2.speed || l2.risk !== s2.risk;
+      <div class="mx-table-scroll">
+        <table class="mx-table mx-table-sliders">
+          <thead><tr>
+            <th>POS</th>
+            <th>TEAM</th>
+            <th class="c">CAR POWER<br>SLIDER (1–10)</th>
+            <th>DRIVER 1<br><span class="mx-th-sub">SPEED (1–10) &nbsp;|&nbsp; RISK (1–10)</span></th>
+            <th>DRIVER 2<br><span class="mx-th-sub">SPEED (1–10) &nbsp;|&nbsp; RISK (1–10)</span></th>
+            <th class="c">SYNC STATUS</th>
+          </tr></thead>
+          <tbody>
+          ${ordered.map((t, i) => {
+            const [d1, d2] = driversOfTeam(t.id, s);
+            const lPwr = teamMonopostoPower(t.id, s);
+            const sPwr = s.monopostoSynced?.teams?.[t.id] ?? t.carPower;
+            const l1 = d1 ? driverLiveStats(d1.id, s) : { speed: 7, risk: 6 };
+            const s1 = d1 ? (s.monopostoSynced?.drivers?.[d1.id] || { speed: d1.speed, risk: d1.risk }) : { speed: 7, risk: 6 };
+            const l2 = d2 ? driverLiveStats(d2.id, s) : { speed: 7, risk: 6 };
+            const s2 = d2 ? (s.monopostoSynced?.drivers?.[d2.id] || { speed: d2.speed, risk: d2.risk }) : { speed: 7, risk: 6 };
+            const rowChanged = lPwr !== sPwr || l1.speed !== s1.speed || l1.risk !== s1.risk || l2.speed !== s2.speed || l2.risk !== s2.risk;
 
-          const fmtVal = (oldV, newV) => oldV !== newV
-            ? `<span style="color:var(--gold);font-family:'F1DisplayBold',sans-serif"><s style="color:var(--dim);font-weight:400">${oldV}</s> → ${newV}</span>`
-            : `<b style="font-family:'F1DisplayBold',sans-serif">${newV}</b>`;
+            const fmtVal = (oldV, newV) => oldV !== newV
+              ? `<span style="color:var(--gold);font-family:'F1DisplayBold',sans-serif"><s style="color:var(--dim);font-weight:400">${oldV}</s> → ${newV}</span>`
+              : `<b style="font-family:'F1DisplayBold',sans-serif;color:#fff">${newV}</b>`;
 
-          return `<tr class="${t.id === s.teamId ? 'me' : ''}">
-            <td class="mx-pos">${i + 1}</td>
-            <td><div class="mx-team"><span class="mx-colorbar" style="background:${t.color}"></span>${logoHTML(t)}<span class="mx-tname">${t.name.toUpperCase()}</span></div></td>
-            <td class="c"><span class="mx-power" style="border-color:${lPwr !== sPwr ? 'var(--gold)' : t.color};width:auto;min-width:42px;padding:0 8px">${fmtVal(sPwr, lPwr)}</span></td>
-            <td>${d1 ? `<div style="display:flex;align-items:center;gap:10px"><span class="mx-num sm" style="background:${t.color}">${d1.no}</span><div><div style="font-family:'F1DisplayBold',sans-serif;font-size:.86rem">${d1.last}</div><div style="font-size:.82rem;color:var(--dim)">SPD: ${fmtVal(s1.speed, l1.speed)} &nbsp;|&nbsp; RSK: ${fmtVal(s1.risk, l1.risk)}</div></div></div>` : '—'}</td>
-            <td>${d2 ? `<div style="display:flex;align-items:center;gap:10px"><span class="mx-num sm" style="background:${t.color}">${d2.no}</span><div><div style="font-family:'F1DisplayBold',sans-serif;font-size:.86rem">${d2.last}</div><div style="font-size:.82rem;color:var(--dim)">SPD: ${fmtVal(s2.speed, l2.speed)} &nbsp;|&nbsp; RSK: ${fmtVal(s2.risk, l2.risk)}</div></div></div>` : '—'}</td>
-            <td class="c">${rowChanged ? `<span class="tag warn">UPDATE IN GAME</span>` : `<span class="tag good">✓ SYNCED</span>`}</td>
-          </tr>`;
-        }).join('')}
-        </tbody>
-      </table>
+            return `<tr class="${t.id === s.teamId ? 'me' : ''}">
+              <td class="mx-pos">${i + 1}</td>
+              <td>
+                <div class="mx-team">
+                  <span class="mx-colorbar" style="background:${t.color}"></span>
+                  ${logoHTML(t)}
+                  <div class="mx-team-meta">
+                    <span class="mx-tname">${t.name.toUpperCase()}</span>
+                    <div class="mx-thq">${t.hq.toUpperCase()} HQ</div>
+                  </div>
+                </div>
+              </td>
+              <td class="c"><span class="mx-power" style="border-color:${lPwr !== sPwr ? 'var(--gold)' : t.color};width:auto;min-width:42px;padding:0 8px">${fmtVal(sPwr, lPwr)}</span></td>
+              <td>
+                ${d1 ? `<div class="mx-driver mx-clickable-drv" data-inspect-drv="${d1.id}">
+                  <span class="mx-num sm" style="background:${t.color}">${d1.no}</span>
+                  <div class="mx-dmeta">
+                    <span class="mx-dname"><span class="fn">${d1.first}</span> <span class="ln">${d1.last}</span></span>
+                    <span class="mx-dstats">SPD: ${fmtVal(s1.speed, l1.speed)} &nbsp;|&nbsp; RSK: ${fmtVal(s1.risk, l1.risk)}</span>
+                  </div>
+                </div>` : '—'}
+              </td>
+              <td>
+                ${d2 ? `<div class="mx-driver mx-clickable-drv" data-inspect-drv="${d2.id}">
+                  <span class="mx-num sm" style="background:${t.color}">${d2.no}</span>
+                  <div class="mx-dmeta">
+                    <span class="mx-dname"><span class="fn">${d2.first}</span> <span class="ln">${d2.last}</span></span>
+                    <span class="mx-dstats">SPD: ${fmtVal(s2.speed, l2.speed)} &nbsp;|&nbsp; RSK: ${fmtVal(s2.risk, l2.risk)}</span>
+                  </div>
+                </div>` : '—'}
+              </td>
+              <td class="c">${rowChanged ? `<span class="tag warn">UPDATE IN GAME</span>` : `<span class="tag good">✓ SYNCED</span>`}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
   } else {
     // 'rdspy' — 12-Team R&D Development Progress Spy Table
@@ -223,47 +262,63 @@ export function render(root) {
           <b>12-TEAM ENGINEERING &amp; BACKGROUND R&amp;D SPY TELEMETRY</b> — Tracks every constructor's HQ Facility Phase, FIA Wind Tunnel ATR multiplier, weekly DP output, true fractional Car Power, and Season-2 Technical Directive protection.
         </div>
       </div>
-      <table class="mx-table">
-        <thead><tr>
-          <th>POS</th>
-          <th>TEAM &amp; FACTORY HQ</th>
-          <th class="c">TRUE POWER<br><span class="mx-th-sub">START → LIVE</span></th>
-          <th>FACILITY PHASE &amp;<br>ATR MULTIPLIER</th>
-          <th>ACTIVE R&amp;D UPGRADE<br>&amp; WEEKLY DP RATE</th>
-          <th>2027 SPEC FOCUS &amp;<br>DIRECTIVE SHIELD</th>
-        </tr></thead>
-        <tbody>
-        ${ordered.map((t, i) => {
-          const ai = s.aiTeams?.[t.id] || { facilityPhase: 1, atrMult: 1.0, weeklyDpBase: 3.2, activeUpgrade: 'Aero Package', regFocus: 'current' };
-          const startPwr = s.seasonStartPower?.[t.id] ?? t.carPower;
-          const liveTrue = teamTruePower(t.id, s);
-          const atrPct = Math.round((ai.atrMult || 1.0) * 100);
-          const protPct = regulationProtectionPct(s, t.id);
-          const isMe = t.id === s.teamId;
-          const activeTask = isMe ? (s.tasks.find(x => x.kind === 'research' || x.kind === 'manufacture')?.label || 'Player R&D Queue') : (ai.activeUpgrade || 'Wind Tunnel Spec');
-          const wkRate = isMe ? 'Player R&D + RP' : `+${(ai.weeklyDpBase * (ai.atrMult || 1.0)).toFixed(1)} DP/wk`;
-          const focusMode = REG_FOCUS_MODES[isMe ? (s.regFocus || 'current') : (ai.regFocus || 'current')] || REG_FOCUS_MODES.current;
+      <div class="mx-table-scroll">
+        <table class="mx-table mx-table-rdspy">
+          <thead><tr>
+            <th>POS</th>
+            <th>TEAM &amp; FACTORY HQ</th>
+            <th class="c">TRUE POWER<br><span class="mx-th-sub">START → LIVE</span></th>
+            <th>FACILITY PHASE &amp;<br>ATR MULTIPLIER</th>
+            <th>ACTIVE R&amp;D UPGRADE<br>&amp; WEEKLY DP RATE</th>
+            <th>2027 SPEC FOCUS &amp;<br>DIRECTIVE SHIELD</th>
+          </tr></thead>
+          <tbody>
+          ${ordered.map((t, i) => {
+            const ai = s.aiTeams?.[t.id] || { facilityPhase: 1, atrMult: 1.0, weeklyDpBase: 3.2, activeUpgrade: 'Aero Package', regFocus: 'current' };
+            const startPwr = s.seasonStartPower?.[t.id] ?? t.carPower;
+            const liveTrue = teamTruePower(t.id, s);
+            const atrPct = Math.round((ai.atrMult || 1.0) * 100);
+            const protPct = regulationProtectionPct(s, t.id);
+            const isMe = t.id === s.teamId;
+            const activeTask = isMe ? (s.tasks.find(x => x.kind === 'research' || x.kind === 'manufacture')?.label || 'Player R&D Queue') : (ai.activeUpgrade || 'Wind Tunnel Spec');
+            const wkRate = isMe ? 'Player R&D + RP' : `+${(ai.weeklyDpBase * (ai.atrMult || 1.0)).toFixed(1)} DP/wk`;
+            const focusMode = REG_FOCUS_MODES[isMe ? (s.regFocus || 'current') : (ai.regFocus || 'current')] || REG_FOCUS_MODES.current;
 
-          return `<tr class="${isMe ? 'me' : ''}">
-            <td class="mx-pos">${i + 1}</td>
-            <td><div class="mx-team"><span class="mx-colorbar" style="background:${t.color}"></span>${logoHTML(t)}<div><span class="mx-tname">${t.name.toUpperCase()}</span><div style="font-size:.66rem;color:var(--dim)">${t.hqFull || t.hq}</div></div></div></td>
-            <td class="c"><div style="font-family:'F1DisplayBold',sans-serif;font-size:1rem;color:#fff">${liveTrue.toFixed(2)}</div><div style="font-size:.72rem;color:var(--dim)">Base ${startPwr.toFixed(2)} (+${(liveTrue - startPwr).toFixed(2)})</div></td>
-            <td>
-              <span class="tag ${ai.facilityPhase === 3 ? 'good' : ai.facilityPhase === 2 ? 'warn' : ''}">PHASE ${ai.facilityPhase}</span>
-              <span class="tag" style="margin-left:4px">ATR ${atrPct}%</span>
-            </td>
-            <td>
-              <div style="font-family:'F1DisplayBold',sans-serif;font-size:.82rem;color:#fff">${activeTask}</div>
-              <div style="font-size:.75rem;color:var(--green)">${wkRate}</div>
-            </td>
-            <td>
-              <div style="font-size:.78rem;color:#d8d8dd">${focusMode.short}</div>
-              <div style="font-size:.74rem;color:${protPct > 0 ? 'var(--gold)' : 'var(--dim)'}">2027 Part-Ban Shield: <b>${protPct}%</b></div>
-            </td>
-          </tr>`;
-        }).join('')}
-        </tbody>
-      </table>
+            return `<tr class="${isMe ? 'me' : ''}">
+              <td class="mx-pos">${i + 1}</td>
+              <td>
+                <div class="mx-team">
+                  <span class="mx-colorbar" style="background:${t.color}"></span>
+                  ${logoHTML(t)}
+                  <div class="mx-team-meta">
+                    <span class="mx-tname">${t.name.toUpperCase()}</span>
+                    <div class="mx-thq" title="${t.hqFull || t.hq}">${t.hqFull || t.hq}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="c">
+                <div style="font-family:'F1DisplayBold',sans-serif;font-size:1rem;color:#fff;white-space:nowrap">${liveTrue.toFixed(2)}</div>
+                <div style="font-size:.72rem;color:var(--dim);white-space:nowrap">Base ${startPwr.toFixed(2)} (+${(liveTrue - startPwr).toFixed(2)})</div>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  <span class="tag ${ai.facilityPhase === 3 ? 'good' : ai.facilityPhase === 2 ? 'warn' : ''}">PHASE ${ai.facilityPhase}</span>
+                  <span class="tag">ATR ${atrPct}%</span>
+                </div>
+              </td>
+              <td>
+                <div style="font-family:'F1DisplayBold',sans-serif;font-size:.82rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${activeTask}</div>
+                <div style="font-size:.75rem;color:var(--green);white-space:nowrap">${wkRate}</div>
+              </td>
+              <td>
+                <div style="font-size:.78rem;color:#d8d8dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${focusMode.short}</div>
+                <div style="font-size:.74rem;color:${protPct > 0 ? 'var(--gold)' : 'var(--dim)'};white-space:nowrap">2027 Part-Ban Shield: <b>${protPct}%</b></div>
+              </td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
   }
 

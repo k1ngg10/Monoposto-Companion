@@ -185,27 +185,81 @@ td.pts, th.pts { text-align: right; font-family: 'F1DisplayBold', sans-serif; fo
   border: 1px solid #33333a; border-radius: 20px; padding: 6px 14px; text-decoration: none; white-space: nowrap; }
 .mx-chip.on { background: var(--red); border-color: var(--red); color: #fff; }
 .mx-chip.link:hover { color: #fff; border-color: var(--team); }
-table.mx-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-table.mx-table th:nth-child(1), table.mx-table td:nth-child(1) { width: 42px; min-width: 42px; }
-table.mx-table th:nth-child(2), table.mx-table td:nth-child(2) { width: 22%; min-width: 195px; }
-table.mx-table th:nth-child(3), table.mx-table td:nth-child(3) { width: 118px; min-width: 118px; padding-left: 8px; padding-right: 8px; }
-table.mx-table th:nth-child(4), table.mx-table td:nth-child(4) { width: 15%; min-width: 144px; padding-left: 12px; }
-table.mx-table th:nth-child(5), table.mx-table td:nth-child(5),
-table.mx-table th:nth-child(6), table.mx-table td:nth-child(6) { width: 24.5%; min-width: 190px; }
-@media (max-width: 980px) {
-  table.mx-table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; table-layout: auto; padding-bottom: 6px; }
+.mx-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
 }
-table.mx-table th { text-align: left; font-family: 'F1DisplayBold', sans-serif; font-size: .62rem; letter-spacing: .09em;
-  color: var(--dim); text-transform: uppercase; padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: bottom; line-height: 1.45;
-  overflow-wrap: normal; word-break: normal; }
+.mx-table-scroll::-webkit-scrollbar { height: 7px; }
+.mx-table-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 4px; }
+.mx-table-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 4px; }
+.mx-table-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.38); }
+
+table.mx-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* Mode 1: ALL 12 TEAMS */
+table.mx-table.mx-table-all th:nth-child(1),
+table.mx-table.mx-table-all td:nth-child(1) { width: 46px; }
+table.mx-table.mx-table-all th:nth-child(2),
+table.mx-table.mx-table-all td:nth-child(2) { width: 24%; }
+table.mx-table.mx-table-all th:nth-child(3),
+table.mx-table.mx-table-all td:nth-child(3) { width: 112px; padding-left: 8px; padding-right: 8px; }
+table.mx-table.mx-table-all th:nth-child(4),
+table.mx-table.mx-table-all td:nth-child(4) { width: 14%; padding-left: 10px; padding-right: 12px; }
+table.mx-table.mx-table-all th:nth-child(5),
+table.mx-table.mx-table-all td:nth-child(5),
+table.mx-table.mx-table-all th:nth-child(6),
+table.mx-table.mx-table-all td:nth-child(6) { width: 24%; }
+
+/* Mode 2: MONOPOSTO 1-10 SLIDERS */
+table.mx-table.mx-table-sliders th:nth-child(1),
+table.mx-table.mx-table-sliders td:nth-child(1) { width: 46px; }
+table.mx-table.mx-table-sliders th:nth-child(2),
+table.mx-table.mx-table-sliders td:nth-child(2) { width: 25%; }
+table.mx-table.mx-table-sliders th:nth-child(3),
+table.mx-table.mx-table-sliders td:nth-child(3) { width: 118px; padding-left: 8px; padding-right: 8px; }
+table.mx-table.mx-table-sliders th:nth-child(4),
+table.mx-table.mx-table-sliders td:nth-child(4),
+table.mx-table.mx-table-sliders th:nth-child(5),
+table.mx-table.mx-table-sliders td:nth-child(5) { width: 24%; }
+table.mx-table.mx-table-sliders th:nth-child(6),
+table.mx-table.mx-table-sliders td:nth-child(6) { width: 136px; }
+
+/* Mode 3: R&D DEVELOPMENT PROGRESS SPY */
+table.mx-table.mx-table-rdspy th:nth-child(1),
+table.mx-table.mx-table-rdspy td:nth-child(1) { width: 46px; }
+table.mx-table.mx-table-rdspy th:nth-child(2),
+table.mx-table.mx-table-rdspy td:nth-child(2) { width: 25%; }
+table.mx-table.mx-table-rdspy th:nth-child(3),
+table.mx-table.mx-table-rdspy td:nth-child(3) { width: 132px; padding-left: 8px; padding-right: 8px; }
+table.mx-table.mx-table-rdspy th:nth-child(4),
+table.mx-table.mx-table-rdspy td:nth-child(4) { width: 16%; }
+table.mx-table.mx-table-rdspy th:nth-child(5),
+table.mx-table.mx-table-rdspy td:nth-child(5) { width: 21%; }
+table.mx-table.mx-table-rdspy th:nth-child(6),
+table.mx-table.mx-table-rdspy td:nth-child(6) { width: 21%; }
+
+table.mx-table th {
+  text-align: left; font-family: 'F1DisplayBold', sans-serif; font-size: .62rem; letter-spacing: .08em;
+  color: var(--dim); text-transform: uppercase; padding: 10px 10px; border-bottom: 1px solid var(--line);
+  vertical-align: bottom; line-height: 1.4; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis;
+}
 table.mx-table th.c, table.mx-table td.c { text-align: center; }
-.mx-th-sub { display: block; color: var(--faint); letter-spacing: .05em; margin-top: 2px; white-space: nowrap; }
-table.mx-table td { padding: 10px 10px; border-bottom: 1px solid #1b1b21; vertical-align: middle; }
+.mx-th-sub { display: block; color: var(--faint); letter-spacing: .04em; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.mx-table td { padding: 10px 10px; border-bottom: 1px solid #1b1b21; vertical-align: middle; box-sizing: border-box; overflow: hidden; }
 table.mx-table tbody tr { border-left: 3px solid transparent; }
 table.mx-table tbody tr.me { background: rgba(225,6,0,.07); border-left-color: var(--red);
   box-shadow: inset 0 0 0 1px rgba(225,6,0,.35); }
 .mx-pos { font-family: 'F1DisplayBold', sans-serif; font-size: 1.05rem; width: 34px; font-variant-numeric: tabular-nums; }
-.mx-team { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mx-team { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; overflow: hidden; }
+.mx-team-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; overflow: hidden; }
+.mx-thq { font-size: .66rem; color: var(--dim); letter-spacing: .05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .mx-colorbar { width: 4px; height: 26px; border-radius: 2px; flex: none; }
 .mx-logos { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none;
   width: 58px; height: 30px; padding: 3px 6px; border-radius: 6px; overflow: hidden; }
@@ -213,24 +267,24 @@ table.mx-table tbody tr.me { background: rgba(225,6,0,.07); border-left-color: v
 .mx-logos.is-blend { background: #000000; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 .mx-logo { max-height: 24px; max-width: 48px; width: auto; height: auto; object-fit: contain; display: block; }
 .mx-logo.blend { mix-blend-mode: lighten; max-height: 26px; max-width: 52px; }
-.mx-logo2 { height: 20px; max-width: 34px; object-fit: contain; display: block; }
+.mx-logo2 { height: 20px; max-width: 34px; object-fit: contain; block-size: auto; }
 .mx-wordmark { font-family: 'F1DisplayBold', sans-serif; font-size: .82rem; letter-spacing: .06em; width: 58px; text-align: center; flex: none; }
-.mx-tname { font-family: 'F1DisplayBold', sans-serif; font-size: .9rem; letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.mx-tname { display: block; font-family: 'F1DisplayBold', sans-serif; font-size: .88rem; letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .mx-power { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 9px;
   border: 1.5px solid #3a3a42; background: #101014; font-family: 'F1DisplayBold', sans-serif; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
 .mx-prog { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .mx-prog .mx-track { flex: 1; min-width: 48px; height: 9px; background: #17171c; border-radius: 5px; overflow: hidden; }
 .mx-prog .mx-fill { display: block; height: 100%; border-radius: 5px; }
 .mx-prog b { font-family: 'F1DisplayBold', sans-serif; font-size: .9rem; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
-.mx-driver { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mx-driver { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; overflow: hidden; }
 .mx-num { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 34px; padding: 0 6px;
   border-radius: 7px; color: #0b0b0e; font-family: 'F1DisplayBold', sans-serif; font-size: .96rem; flex: none; font-variant-numeric: tabular-nums; }
 .mx-num.sm { min-width: 30px; height: 26px; font-size: .8rem; }
-.mx-dmeta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.mx-dmeta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; overflow: hidden; }
 .mx-dname { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mx-dname .fn { font-family: 'F1Display', sans-serif; font-size: .92rem; }
-.mx-dname .ln { font-family: 'F1DisplayBold', sans-serif; font-size: .92rem; }
-.mx-dstats { color: var(--dim); font-size: .78rem; letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mx-dname .fn { font-family: 'F1Display', sans-serif; font-size: .9rem; }
+.mx-dname .ln { font-family: 'F1DisplayBold', sans-serif; font-size: .9rem; }
+.mx-dstats { color: var(--dim); font-size: .77rem; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mx-dstats b { color: #fff; font-family: 'F1DisplayBold', sans-serif; }
 .mx-status { font-family: 'F1DisplayBold', sans-serif; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; }
 .mx-status.good { color: var(--green); } .mx-status.bad { color: #ff7a6e; }

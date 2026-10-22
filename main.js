@@ -3,7 +3,7 @@ import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.
 import { applyTheme } from './engine/themeEngine.js?v=20261022m';
 import { openDeleteConfirmModal } from './views/shared.js?v=20261022m';
 import { render as StartWizard } from './views/StartWizardView.js?v=20261022m';
-import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022m';
+import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022n';
 import { render as HQ } from './views/HqDashboardView.js?v=20261022m';
 import { render as RaceWeekend } from './views/RaceWeekendView.js?v=20261022m';
 import { render as ResearchDev } from './views/ResearchDevView.js?v=20261022m';

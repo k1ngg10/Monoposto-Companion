@@ -1,109 +1,69 @@
-# Monoposto Companion — R&D Subcategory Browser, Develop Upgrade Page, F1 Advance Reticle & Delete Confirmation Plan
+# Full-Grid AI R&D, Monoposto Slider Sync, 24-Driver Qualifying/Race Control & Season 2 Lifecycle
 
-This plan adds a confirmation dialog before deleting a championship in the Settings menu, replicates the exact F1 game advancing circle/reticle from your reference video (`VID_20261022_202944_d5e52829.mp4`), and upgrades the R&D system into the three-stage F1 game workflow shown in your reference screenshots: **2×2 Department Hub** → **Department Subcategory Browser (`SELECT A PART TO RESEARCH`)** → **Dedicated Part Detail Screen (`DEVELOP UPGRADE`)**.
+This update transforms the companion app from a single-team tracker into a complete 12-team, 24-driver career simulation across Seasons 1 (2026) and 2 (2027), syncing live integer slider changes (`Car Power`, `Driver Speed`, `Driver Risk`) directly with your Monoposto mobile game.
 
-## User Review & Critical Decisions
+---
+
+## User Review & Confirmed Decisions
 
 > [!IMPORTANT]
-> All choices confirmed in our clarification step and your reference video are locked in below:
-> - **Confirmed Decision 1 (Department Subcategories & Parts)**: Group the existing parts into authentic, domain-specific F1 subcategories for each of the 4 departments and include the Chassis parts shown in your screenshots (`Weight Redistribution` and `Weight Reduction`) while preserving all core Spec 1/2/3 ladders and starter preset compatibility.
-> - **Confirmed Decision 2 (Locked Upgrades Display)**: Upgrades locked behind an unresearched prerequisite render as dark **`UNKNOWN UPGRADE`** cards in the subcategory row and as **`[?]`** nodes in the compact subcategory progress strips below until their prerequisite is researched.
-> - **Confirmed Decision 3 (Delete Championship Confirmation)**: Clicking **Delete championship…** in the header Settings menu opens an in-app confirmation modal with **Cancel** and **Delete Championship** buttons before wiping the save.
-> - **Confirmed Decision 4 (Exact F1 Video Advancing Circle / Reticle)**: Replicate the exact advancing circle from your video (`VID_20261022_202944_d5e52829.mp4`): a crisp dark inner circle with a clean white circular ring outline inside a thin dark outer ring track, surrounded by an outer green gradient arc wedge that sweeps smoothly 360° clockwise once per simulated day (incrementing the date each time the green sweep completes a revolution at 12 o'clock), with zero oval distortion or weird borders.
+> The following core workflows and simulation rules incorporate your exact specifications and clarifying responses:
+
+- **Confirmed Decision 1 — Full 24-Driver Manual Classification across Two Distinct Weekend Screens (Qualifying → Grand Prix)**:
+  - When a Race Weekend arrives on the Team HQ calendar, advancing pauses and presents a direct entry into **Qualifying Control**.
+  - **Qualifying Screen**: Requires manual entry for all 24 drivers (`P1`–`P24` starting grid and mandatory qualifying lap times), **plus an explicit `[SKIP QUALIFYING → GO TO GRAND PRIX]` button** if you did not record Qualifying for that round.
+  - **Seamless Transition to Grand Prix Screen**: As soon as Qualifying is logged or skipped, Race Control transitions directly to the **Grand Prix Classification** screen (no need to navigate back to Team HQ). If you exit to Team HQ between Qualifying and the Race, the Team HQ Race Weekend banner remembers that Qualifying is complete/skipped and provides a direct **`[CONTINUE TO GRAND PRIX →]`** button.
+  - **Grand Prix Screen**: Requires manual position/status entry (`P1`–`P24` or `DNF`) for all 24 drivers across all 12 teams, with **optional** finishing time/gap inputs and Fastest Lap selection, calculating official F1 points (`25-18-15-12-10-8-6-4-2-1` + `+1 FL`) across both the Drivers' and Constructors' Championships.
+- **Confirmed Decision 2 — Season 1 (2026) to Season 2 (2027) Transition & Targeted Annual Part Bans**:
+  - Since 2026 was the major regulation reset and the next major overhaul is not until 2030, transitioning from Season 1 (2026) to Season 2 (2027) applies **targeted FIA Technical Directive part bans** (announced at Round 16 Singapore) rather than an arbitrary full regulation wipe.
+  - Between Round 16 (Singapore) and Round 22 (Abu Dhabi), both you and the 11 AI teams choose an **R&D Spec Allocation Split** (`100% Current 2026 Car`, `50/50 Balanced Adaptation`, or `100% 2027 Spec Protection`) to shield against off-season banned-part power drops.
+  - After Round 22 (Abu Dhabi) is logged, an **End-of-Season Summary Modal** reviews the championship winners, prize purses, contract window moves, and each team's 2027 starting baseline before launching **Season 2 (2027)**.
+- **Confirmed Decision 3 — Dynamic Team HQ Cities (Removing Hardcoded "Weissach")**:
+  - `"Weissach"` (`Weissach, Baden-Württemberg, Germany`) is now strictly exclusive to **Apple Porsche**. Every other constructor displays its authentic real-world headquarters across Team HQ, Facilities, Radio Banners, Weekly Ledger cards, and Driver Market screens (`Woking` for McLaren, `Brackley` for Mercedes, `Milton Keynes` for Red Bull, `Maranello` for Ferrari, `Grove` for Williams, `Silverstone` for Aston Martin, `Kannapolis` for Haas, `Hinwil` for Audi, `Indianapolis` for Cadillac, `Shenzhen` for BYD, and `Munich` for BMW).
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**:
-  1. Protects the user's career save from accidental deletion with a confirmation dialog when clicking **Delete championship…** in Settings.
-  2. Rebuilds the HQ advancing circle (`#ring`) to match your reference video: an outer green glowing sweep wedge with a fading tail rotates smoothly 360° clockwise around the white-ringed dark center circle, advancing the calendar by 1 day on each full 12-o'clock revolution while events slide up the vertical timeline line.
-  3. Splits R&D navigation into three distinct screens matching the F1 game:
-     - **Screen 1 — 2×2 Department Overview Hub**: Select from `AERODYNAMICS`, `CHASSIS`, `POWERTRAIN`, or `DURABILITY`.
-     - **Screen 2 — Subcategory Browser (`SELECT A PART TO RESEARCH`)**: Browse a department's domain-specific subcategories via the left vertical subcategory spine (`^` / `v` switcher) and lower progress strips (`[✓]-[✓]-[ ]-[?]`), showing a horizontal row of chamfered upgrade cards for the active subcategory.
-     - **Screen 3 — Dedicated Part Detail Screen (`DEVELOP UPGRADE`)**: Clicking a part card opens a separate detail screen with the chamfered card + translucent specification box, horizontal calendar completion timeline, `UNLOCKS:` downstream preview, `VEHICLE PERFORMANCE COMPARISON` chart, and research/manufacture action controls.
-- **Target Audience / Persona**: Monoposto career players who want an authentic F1 R&D tree browser, the exact F1 calendar-advancing sweep reticle, and safeguard against accidental save deletion.
-- **Key Value**: Replicates the exact F1 game advancing sweep animation without weird borders, gives each department realistic F1 engineering subcategories without mixing unrelated parts together, and keeps part inspection on its own clean, dedicated page.
+- **What It Does**: Simulates all 12 constructors and 24 drivers in parallel with your career team, tracking exact `1–10` Monoposto slider integers (`Car Power`, `Driver Speed`, `Driver Risk`), full-grid Qualifying and Race classifications, FIA Wind Tunnel (ATR) multipliers, Fan Rating economy, and interactive driver contracts across a 2-season arc.
+- **Target Audience / Persona**: Monoposto players running a realistic 2026–2027 Formula 1 career who want deterministic, transparent rules governing AI car upgrades, driver aggression/form shifts, and in-game slider synchronization.
+- **Key Value**: Eliminates static placeholder panels and guesswork—every slider adjustment you need to make inside Monoposto is tracked as a two-state diff (`Synced in Game` vs. `New Live Value`) with one-click confirmation.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Key User Flows
-
-1. **Settings → Delete Championship Confirmation Modal**:
-   - Clicking the gear icon (`⚙`) → **Delete championship…** opens a sleek dark motorsport confirmation modal over the viewport:
-     - **Heading**: `DELETE CHAMPIONSHIP?`
-     - **Body**: Explains that deleting the current career permanently erases your team progress, R&D tree, and race results (suggesting JSON export first if desired).
-     - **Actions**: **CANCEL** (closes modal safely) and **CONFIRM DELETE** (wipes the save and routes to Championship Creation).
-
-2. **Exact F1 Video Advancing Circle (`ADVANCE` / `STOP ADVANCING`)**:
-   - **Why It Looked Weird Before**: `.ring` (`38px × 38px`) was placed inside `.node .dot` (`34px × 34px`), squishing the circle into a distorted oval and causing the vertical timeline line and inner background to clip unevenly.
-   - **Exact Video Design (`VID_20261022_202944_d5e52829.mp4`)**:
-     - **Concentric Geometry (Perfect 1:1 Circle, No Weird Borders)**:
-       - **Inner Core**: A dark circular disc (`#0b0d10`) with a crisp white circular ring border (`stroke: #ffffff`) centered on the vertical timeline axis, displaying the clean control glyph inside.
-       - **Outer Ring Track**: A subtle thin dark-grey concentric circle around the inner core, with the subtle horizontal dashed tick on the left and the vertical timeline line extending strictly downward from the bottom of the outer ring (never cutting behind or through the circle).
-       - **Clockwise Green Sweep Wedge (Active while Advancing)**: A thick outer ring band (`conic-gradient` mask / SVG sector outside the white inner ring) featuring a bright neon-green leading edge (`#24e058`) and a smooth fading green tail (~100° arc) that rotates smoothly 360° clockwise (`requestAnimationFrame` / linear angle `0deg → 360deg`).
-       - **1 Revolution = 1 Day Sync**: Each full 360° clockwise sweep from 12 o'clock back to 12 o'clock advances the date by 1 day (e.g., `19th February` → `20th February`) while upcoming timeline items slide smoothly upward toward the circle.
-
-3. **R&D Screen 1 → Screen 2 (`SELECT A PART TO RESEARCH` — Subcategory Browser)**:
-   - Clicking any department in the 2×2 grid opens **`SELECT A PART TO RESEARCH`** for that department:
-     - **Top Bar**: Department switcher tabs (`AERODYNAMICS`, `CHASSIS`, `POWERTRAIN`, `DURABILITY`), a **Back to R&D Hub** button, and the right-hand KPI header (`TOTAL UPGRADES`, `FAILURE CHANCE`, `SIMULTANEOUS UPGRADES`).
-     - **Left Vertical Subcategory Spine**: A tall pill-shaped vertical switcher on the left edge of the card row with Up (`^`) and Down (`v`) buttons, the subcategory completion counter (e.g., `4/6`), and rotated uppercase title (e.g., `WEIGHT REDISTRIBUTION` or `WEIGHT REDUCTION`).
-     - **Active Subcategory Part Row**: A horizontal row of chamfered upgrade cards belonging strictly to the selected subcategory:
-       - **Completed / Fitted Cards**: Filled with the department's translucent accent gradient, top-right checkmark badge, part name, department label, and bottom status pill (`BOT | Completed`, `CAR 1`, `CAR 2`, or `BLUEPRINT READY`).
-       - **Available Cards**: Dark chamfered card with the RP cost in the top-right corner (showing discounted RP + struck-through base RP when facility discounts apply), part title at bottom-left, and `Available` status pill beneath.
-       - **Locked Downstream Cards**: Dark chamfered card titled **`UNKNOWN UPGRADE`** until its prerequisite part is researched.
-     - **Lower Compact Subcategory Progress Strips**: Directly beneath the card row, each of the other subcategories in the department is rendered as a clickable horizontal strip showing its ratio badge (e.g., `6/8`, `4/5`) followed by connected square nodes:
-       - `[✓]` (colored box with checkmark) for researched parts,
-       - `[ ]` (outlined dark box) for available unresearched parts,
-       - `[?]` (dark box with `?`) for locked downstream parts.
-       - Clicking any lower strip (or clicking `^` / `v` on the vertical spine) immediately switches the active subcategory row.
-     - **Bottom-Right Completion Preview**: Displays `COMPLETED` or `ESTIMATED COMPLETION` date range and the player team's progress bar.
-
-4. **R&D Screen 2 → Screen 3 (`DEVELOP UPGRADE` — Dedicated Part Detail Page)**:
-   - Clicking a part card in Screen 2 navigates to the separate **`DEVELOP UPGRADE`** screen:
-     - **Left Column**:
-       - **Two-Box Upgrade Inspector**: The chamfered part card on the left + the translucent detail box immediately to its right (Part Name, `Major/Minor - <Subcategory Name>`, technical description, RP cost, research/build days, and failure/correlation percentage).
-       - **Horizontal Calendar Completion Timeline**: Displays the current date on the left, upcoming Grand Prix flags and dates along the horizontal line, and the `COMPLETE` date marker.
-       - **Bottom Action Boxes**: Research approach cards (`Standard`, `Aggressive`, `Conservative`) when researching, or Car-Specific Manufacturing cards (`Car #1`, `Car #2`, `Both Cars`) when the blueprint is ready, plus a **Back** button returning to Screen 2 (`SELECT A PART TO RESEARCH`).
-     - **Right Column**:
-       - **`UNLOCKS:` Panel**: Lists the downstream part(s) unlocked by researching this upgrade (or states `Final tier upgrade in this branch` if terminal).
-       - **`VEHICLE PERFORMANCE COMPARISON`**: The 12-team horizontal bar chart with the dashed vertical baseline line at `4.00` and the player team's green projected gain bar.
-
-### Domain-Specific Subcategories by Department
-
-Every department has its own authentic F1 engineering subcategories (no shared or repeated subcategory names across departments):
-
-- **CHASSIS (3 Subcategories)**:
-  1. `Weight Redistribution`: Plank Construction, Intercooler Positioning, Hydraulics, Floor Undertray (Distribution), Energy Store Cells Positioning, Fuel Tank Positioning.
-  2. `Weight Reduction`: Nose Structure, Lightweight Energy Store Cells, Engine Cover, Lightweight Wheel Rims, Floor Undertray, Lightweight Monocoque.
-  3. `Braking & Suspension`: Brake Calipers, Brake Disc Width, Brake Pad Material, Roll Dampers, Rear Floor Undertray.
-- **AERODYNAMICS (3 Subcategories)**:
-  1. `Front Downforce`: Front Wing (Specs 1–3), Wing Mirrors, Front Wing Gurney Flap, Front Wing Adjuster Bracket, Front Wing Endplates.
-  2. `Underbody & Airflow`: Underfloor (Specs 1–3), Sidepods (Specs 1–3), Sidepod Undercut & Inlets, Floor Stiffening Stays, Floor Edge Winglets, Venturi Underfloor Channels.
-  3. `Rear Downforce & Drag`: Rear Wing (Specs 1–3), Rear Downforce Beam Wing, Low-Drag Active Aero Spec.
-- **POWERTRAIN (3 Subcategories)**:
-  1. `Internal Combustion (ICE)`: Air Filter, Spark Plugs, Piston Rings, Pistons.
-  2. `Energy Recovery (ERS / MGU-K)`: 2026 Hybrid PU & MGU-K (Specs 1–3), Stators, ECU.
-  3. `Turbo & Fuel Systems`: Wastegate Actuator, Fuel Injection.
-- **DURABILITY (2 Subcategories)**:
-  1. `Power Unit Reliability`: ES Cooling, ICE Durability, MGU-K & Turbo Bearings.
-  2. `Gearbox & Control Systems`: General Wear Parts, Control Electronics, Gearbox Internals.
+- **Key User Flows**:
+  1. **Monoposto Sync Checklist & 4-Mode Championship Matrix**:
+     - The `REQUIRED MONOPOSTO IN-GAME CHANGES BEFORE NEXT RACE` panel compares `state.monopostoSynced` against live integer values for all 12 teams and 24 drivers. Each changed slider appears as an actionable row (`[✓ Applied]`) alongside a master **`[✓ CONFIRM ALL APPLIED IN MONOPOSTO]`** button.
+     - The 4 top filter buttons on the Championship Matrix screen act as live view-switchers:
+       - `ALL 12 TEAMS`: Full broadcast matrix with Car Power, R&D Progress %, and Driver SPD/RSK/Status.
+       - `MONOPOSTO 1–10 SLIDERS`: Clean 12-row quick-entry setup sheet displaying only the 5 integer sliders per team (`Car Power`, `D1 SPD`, `D1 RSK`, `D2 SPD`, `D2 RSK`) with `Old → New` diff badges.
+       - `R&D DEVELOPMENT PROGRESS`: 12-team engineering spy table showing Facility Phase (`Phase 1–3`), FIA ATR Multiplier (`70%–120%`), Weekly DP gain rate, True Fractional Power (`e.g., 6.48`), Active Background Upgrade, and `2027 Spec Protection %`.
+       - `BASELINE DEV GRAPH →`: Opens the Vehicle Performance Comparison chart (showing Season-Start Baseline + Current-Season Development Gain).
+  2. **Two-Stage Race Weekend Control (`Qualifying` → `Grand Prix`)**:
+     - **Stage 1 — Qualifying Session**: 24-driver grid entry table where you assign `P1`–`P24` and required Qualifying lap times (e.g., `1:27.412`), or click **`[SKIP QUALIFYING → GO TO GRAND PRIX]`** if Qualifying was not recorded.
+     - **Stage 2 — Grand Prix Session**: Automatically opens once Qualifying is saved or skipped. Displays all 24 drivers (ordered by starting grid if Qualifying was logged) to record finishing positions (`P1`–`P24` or `DNF`), optional race time/gap, and Fastest Lap, followed by an instant breakdown of FIA Prize Cash, Telemetry RP, Fan Rating delta, and newly triggered Driver Speed/Risk slider changes.
+  3. **Interactive Contract Radar & Driver Market**:
+     - Clicking any driver row in the Contract Radar or Driver Market opens a **Driver Dossier & Contract Negotiation Modal** showing their season points, Teammate Qualifying/Race H2H, Speed/Risk history, Rule 1/2/3 status, and—during the **Round 12 (Spa)** and **Round 22 (Abu Dhabi)** contract windows—allows signing eligible free agents, poaching rival drivers (gated by your team's **Fan Rating** and **Car Power**), or promoting from the F2 Reserve Pool (`T. Pourchaire`, `F. Vesti`, `P. Aron`).
+- **Visual Identity & Theme**:
+  - *Aesthetic Direction*: High-contrast F1 broadcast telemetry and race-engineering console.
+  - *Color Palette & Mood*: Deep carbon-obsidian surfaces (`#0b0b0e`, `#131318`), crisp hairline borders (`#262630`), team livery color bars, and semantic telemetry accents—F1 crimson (`#e10600`), emerald sync confirmation (`#1ee656`), and amber slider-diff alerts (`#f5c542`).
+  - *Typography & Hierarchy*: `F1DisplayWide` and `F1DisplayBold` for headers and driver surnames, paired with `tabular-nums` across all lap times, gaps, points, and `1–10` slider matrices.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Exact F1 Video Outer Green Sweep Ring (`1 Revolution = 1 Day`)**
-  - *Chosen Approach*: Remove the old `div.dot > div.ring` wrapper that squished the circle and replace it with a dedicated `52×52` 1:1 circular reticle assembly where the outer green gradient arc (`conic-gradient(from 260deg, transparent 0deg, rgba(24,224,88,0.15) 35deg, #18e058 100deg, transparent 101deg)`) is masked strictly to the outer ring annulus (`mask: radial-gradient(...)`) and rotated smoothly via `transform: rotate(calc(var(--angle, 0) * 1deg))` in `requestAnimationFrame`, while the inner circle has a crisp white ring border and dark core.
-  - *Why*: Matches the exact visual appearance and motion in `VID_20261022_202944_d5e52829.mp4` with zero border artifacts, zero oval squishing, and silky-smooth 60fps rotation synced to each day tick.
-- **Decision 2: Three-State View Machine Inside R&D (`hub` → `subcategory` → `detail`)**
-  - *Chosen Approach*: Maintain explicit view state (`rdScreen = 'hub' | 'subcategory' | 'detail'`, `selectedDeptId`, `selectedSubcatId`, `selectedPartId`) so clicking a department opens the Subcategory Browser (`SELECT A PART TO RESEARCH`), and clicking a part card opens the dedicated `DEVELOP UPGRADE` page with a clean Back button at each level.
-  - *Why*: Matches the exact 3-screen hierarchy from your F1 game screenshots while keeping navigation instant.
-- **Decision 3: In-App Confirmation Modal for Delete Championship**
-  - *Chosen Approach*: Render an accessible, keyboard- and touch-friendly modal overlay before invoking `wipe()`.
-  - *Why*: Prevents accidental career loss with a single misclick in the Settings menu and works reliably across desktop and mobile browsers without relying on blocked `window.confirm` popups.
+- **Decision 1 — Two-State Slider Synchronization (`monopostoSynced` vs. `liveTarget`)**:
+  - *Chosen Approach*: Persist a dedicated `monopostoSynced` snapshot in the save state for all 12 teams (`carPower`) and 24 drivers (`speed`, `risk`), updating it only when the user clicks `[✓ Applied]` or `[✓ CONFIRM ALL APPLIED IN MONOPOSTO]`.
+  - *Why*: Previously, the tracker had no memory of what was already entered into the Monoposto app, causing alerts to either vanish prematurely or linger forever.
+- **Decision 2 — Tier-Locked AI R&D Progression with ATR Catch-Up**:
+  - *Chosen Approach*: Rebalance part research (`10–21d`) and manufacturing (`6–12d`) lead times and DP values (`+15 to +35 DP`) so teams gain `+1.00 to +2.00 Car Power` per season, while AI teams progress on Monday ticks according to their Constructor Tier (`Tier 1 Giants: +4.0–4.8 DP/wk`, `Tier 2 Midfield: +3.3–4.0 DP/wk`, `Tier 3 Backmarkers: +2.5–3.2 DP/wk`) modified by the Round 7 & Round 14 FIA ATR Wind Tunnel sliding scale (`70%` for P1 to `120%` for P12).
+  - *Why*: Ensures integer Car Power sliders visibly advance by 1–2 points during a season while guaranteeing backmarkers (`4.00`) cannot unrealistically overtake giants (`6.00–7.00`) in Season 1.
+- **Decision 3 — Deterministic 3-Race Rolling Evaluation for Driver Speed & Risk**:
+  - *Chosen Approach*: Evaluate all 24 drivers after every logged Grand Prix using transparent, rule-based triggers (Championship Desperation `+1 Risk`, Teammate H2H / Hot Seat Pressure `+1 Risk`, High-Risk Crash Cooldown `-1 Risk` after 2 DNFs in 3 races, 40+ pt Lead Safe Mode `-1 Risk`, #1 Car Upgrade Priority `+1 Speed`, and 3-race Hot Streak `+1 Speed` / Cold Slump `-1 Speed`) with an explicit reason tag attached to every change.
+  - *Why*: Replaces random stat noise with authentic motorsport storylines you can verify in the table.
 
 ---
 
@@ -112,68 +72,44 @@ Every department has its own authentic F1 engineering subcategories (no shared o
 ### Architecture & Component Diagram
 
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│                        SITE HEADER SETTINGS MENU                           │
-│  [Export Save]  [Import Save]  [Delete Championship…] ──► Confirm Modal    │
-└──────────────────────────────────────────────────────────────┬─────────────┘
-                                                               │ Confirm
-                                                               ▼
-                                                    wipe() + Route to #/start
-
-┌────────────────────────────────────────────────────────────────────────────┐
-│           EXACT F1 VIDEO ADVANCING RETICLE (`HqDashboardView`)             │
-│         ╭───━━━───╮   <-- Outer green gradient sweep wedge (rotates 360°   │
-│    ┄┄┄┄ │  ( ▶ )  │       clockwise per day; masked to outer annulus)      │
-│         ╰────┬────╯   <-- Crisp white-ringed dark inner circle             │
-│              │            + vertical timeline line below                   │
-└────────────────────────────────────────────────────────────────────────────┘
-
-┌────────────────────────────────────────────────────────────────────────────┐
-│                   R&D 3-SCREEN FLOW (ResearchDevView)                      │
-├────────────────────────────────────────────────────────────────────────────┤
-│  SCREEN 1: 2x2 DEPARTMENT HUB (`rdScreen === 'hub'`)                       │
-│  ┌─────────────────────────┬─────────────────────────┐                     │
-│  │ AERODYNAMICS            │ CHASSIS                 │                     │
-│  ├─────────────────────────┼─────────────────────────┤                     │
-│  │ POWERTRAIN              │ DURABILITY              │                     │
-│  └─────────────────────────┴─────────────────────────┘                     │
-│                                    │ Click Department                      │
-│                                    ▼                                       │
-│  SCREEN 2: SUBCATEGORY BROWSER (`rdScreen === 'subcategory'`)              │
-│  ┌──────────┬───────────────────────────────────────────────────────────┐  │
-│  │    ^     │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌─────────┐ │  │
-│  │  4/6     │  │ PLANK      │ │ INTERCOOLER│ │ HYDRAULICS │ │ UNKNOWN │ │  │
-│  │  WEIGHT  │  │ CONSTRUCT. │ │ POSITIONING│ │            │ │ UPGRADE │ │  │
-│  │  REDIST. │  └────────────┘ └────────────┘ └────────────┘ └─────────┘ │  │
-│  │    v     │    [Completed]    [Completed]    [Available]    [Locked]  │  │
-│  └──────────┴───────────────────────────────────────────────────────────┘  │
-│  Lower Subcategory Strips:                                                 │
-│  [6/8 Weight Reduction]  [✓]-[✓]-[✓]-[✓]-[✓]-[✓]-[ ]-[?]                   │
-│  [4/5 Braking & Susp.]   [✓]-[✓]-[✓]-[✓]-[?]                               │
-│                                    │ Click Unlocked Part Card              │
-│                                    ▼                                       │
-│  SCREEN 3: DEVELOP UPGRADE PAGE (`rdScreen === 'detail'`)                  │
-│  ┌───────────────────────────────────────┬──────────────────────────────┐  │
-│  │ Left: Chamfered Card + Detail Box     │ Right Top: UNLOCKS:          │  │
-│  │ Middle: Grand Prix Calendar Timeline  │ Right Bottom: VEHICLE        │  │
-│  │ Bottom: Research / Manufacture Boxes  │ PERFORMANCE COMPARISON       │  │
-│  └───────────────────────────────────────┴──────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        PERSISTENT CAREER SAVE (store.js)                     │
+│  • season (1 | 2), seasonHistory[], teamDp{}, aiTeams{} (phase, atr, focus)  │
+│  • driverStats{} (live speed, live risk, baseSpeed, baseRisk, formReason)    │
+│  • monopostoSynced: { teams: {id: power}, drivers: {id: {speed, risk}} }     │
+│  • results[round]: { quali: {skipped, grid, times}, race: {entries, gaps} }  │
+└───────────────┬──────────────────────────────┬───────────────────────────────┘
+                │                              │
+   ┌────────────▼────────────┐    ┌────────────▼────────────┐
+   │   MONDAY TIME ENGINE    │    │  RACE WEEKEND SIMULATOR │
+   │  • Player Weekly RP/$   │    │  • Stage 1: 24-Car Quali│
+   │  • Fan Merch (+$10k×Fan)│    │    (or Skip Qualifying) │
+   │  • AI 11-Team Weekly DP │    │  • Stage 2: 24-Car GP   │
+   │  • R16–R22 Spec Split   │    │  • FIA Purse, RP & Fan  │
+   └────────────┬────────────┘    │  • R7/R14 ATR & 24-Drv  │
+                │                 │    Speed/Risk Evolution │
+                └────────┬────────┴────────────┬────────────┘
+                         │                     │
+      ┌──────────────────▼─────────────────────▼──────────────────┐
+      │                USER INTERFACE VIEWS                       │
+      │  • ChampionshipMatrixView (Sync Diff Box + 4 View Modes)  │
+      │  • RaceWeekendView (Qualifying Screen ↔ GP Screen)        │
+      │  • DevGraphView (S1 Base 4.00 / S2 Baseline + Gain Bar)   │
+      │  • DriverMarketView (Interactive Dossiers & Signings)     │
+      │  • HqDashboardView & FacilitiesView (Dynamic Team HQ City)│
+      └───────────────────────────────────────────────────────────┘
 ```
 
-### Interactive Component & State Mapping
+### Data Model & State Transitions
 
-- **Settings Delete Modal**:
-  - Clicking `#set-delete` closes the dropdown and opens `#delete-confirm-modal`.
-  - Clicking `#confirm-delete-cancel` or the backdrop closes the modal without touching the save.
-  - Clicking `#confirm-delete-yes` calls `wipe()`, resets `--team` color, closes the modal, and navigates to `#/start`.
-- **F1 Advancing Reticle (`#ring` in `HqDashboardView.js` & `css/components.css`)**:
-  - Clicking `#ctl` or `#go` activates `.is-advancing` on `#ring`.
-  - During `requestAnimationFrame` in `HqDashboardView.js`, `--sweep-deg` rotates smoothly from `0deg` to `360deg` over `DAY_MS`; each time a revolution completes at 12 o'clock, `advanceOneDay(s)` fires and the date header updates seamlessly.
-- **Subcategory Browser (`SELECT A PART TO RESEARCH`)**:
-  - Clicking `^` or `v` on the left vertical spine cycles `selectedSubcatId` through the current department's subcategories.
-  - Clicking any compact subcategory progress strip below jumps directly to that subcategory.
-  - Clicking an unlocked part card sets `selectedPartId` and transitions `rdScreen` to `'detail'`.
-- **Develop Upgrade Page (`DEVELOP UPGRADE`)**:
-  - Displays the selected part's specification, RP discount math, calendar timeline with Grand Prix flags, `UNLOCKS:` downstream parts, and the 12-team `VEHICLE PERFORMANCE COMPARISON` chart.
-  - Clicking **Back** returns to `rdScreen = 'subcategory'` with the current department and subcategory preserved.
+1. **Dynamic Team Headquarters (`data/teamsAndDrivers.js`)**:
+   - Each team entry defines `hq` (short city name, e.g., `'Brackley'`, `'Maranello'`, `'Shenzhen'`, `'Weissach'`) and `hqFull` (full regional location string). All UI headers, facility statuses, radio banners, and ledger descriptions read `playerTeam().hq` dynamically.
+2. **Two-State Monoposto Sync Engine (`engine/store.js`)**:
+   - `getLiveMonopostoValues(state)` computes the live integer `carPower` (`1–10`) for all 12 teams and live `speed` (`1–10`, including `#1 Priority Car +1 Speed`) and `risk` (`1–10`) for all 24 drivers.
+   - `getMonopostoDiffs(state)` diffs `getLiveMonopostoValues(state)` against `state.monopostoSynced`, returning a list of pending changes with human-readable explanations (e.g., `"Hot Streak: 3 races ≥3 pos above tier"`, `"Crash Cooldown: 2 DNFs in 3 races"`, `"R&D Level Up: 5.02 → Power 5"`).
+   - `confirmMonopostoSync(state, itemKeyOrAll)` updates `state.monopostoSynced` for a single row or all rows at once.
+3. **Two-Stage Full-Grid Race Control (`views/RaceWeekendView.js` & `engine/raceSimulator.js`)**:
+   - Each round stores `state.qualifying[round] = { skipped: boolean, order: [driverId...], times: { [driverId]: string } }` and `state.results[round] = { entries: { [driverId]: number|null }, gaps: { [driverId]: string }, fastestLap: driverId|null, conditions, laps, rewards }`.
+   - In `HqDashboardView.js`, `activeRaceStop(state)` remains active throughout the race weekend until `state.results[race.round]` is logged—showing `"GO TO QUALIFYING →"` first, and `"QUALIFYING LOGGED/SKIPPED · GO TO GRAND PRIX →"` if the player returns to HQ before logging the race.
+4. **Season-End Summary & Season 2 Rollover (`engine/timeEngine.js` & `views/RaceWeekendView.js`)**:
+   - After Round 22 is logged in Season 1, an interactive **End of Season 1 & 2027 Technical Directive Summary** modal computes each team's 2027 starting baseline (`endingPower - (1.20 * (1 - protectionFraction)) + launchBonus`, clamped to realistic bounds), archives Season 1 standings into `state.seasonHistory`, resets the 22-round calendar for Season 2 (`2027`), and updates `state.seasonStartPower[teamId]` so the Season 2 Development Graph renders both the **2027 Starting Baseline** and **In-Season Development Gain**.

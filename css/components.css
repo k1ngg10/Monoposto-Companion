@@ -982,5 +982,93 @@ table.mx-table tbody tr.me { background: rgba(225,6,0,.07); border-left-color: v
   font-family: 'F1DisplayBold', sans-serif; font-size: .76rem; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; }
 .f1rd-qhead b { color: #fff; }
 
+/* ============================================================================
+   MATRIX VIEW: TWO-STATE MONOPOSTO SYNC, MODE BANNER, CLICKABLE DRIVERS & ATR
+   ============================================================================ */
+.mx-mode-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 6px; padding: 11px 16px; margin-bottom: 16px; font-size: .84rem; color: var(--dim);
+}
+.mx-mode-banner b { color: #ffffff; font-family: 'F1DisplayBold', sans-serif; letter-spacing: .04em; margin-right: 6px; }
 
+.mx-diff-list { display: flex; flex-direction: column; gap: 8px; }
+.mx-diff-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  background: rgba(245, 197, 24, .08); border: 1px solid rgba(245, 197, 24, .32);
+  border-radius: 6px; padding: 9px 12px; font-size: .83rem;
+}
+.mx-diff-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mx-diff-left b { color: #ffffff; }
+.mx-diff-vals { font-family: 'F1DisplayBold', sans-serif; font-size: .82rem; color: var(--dim); }
+.mx-diff-vals b { color: var(--gold); font-size: .92rem; }
 
+.mx-clickable-drv {
+  cursor: pointer; border-radius: 5px; transition: background .15s, border-color .15s;
+}
+.mx-clickable-drv:hover {
+  background: rgba(255,255,255,.07);
+}
+.mx-contract-clickable {
+  cursor: pointer; transition: background .15s, border-color .15s, transform .12s;
+}
+.mx-contract-clickable:hover {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.28);
+  transform: translateY(-1px);
+}
+.mx-atr-card.is-active {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,.45);
+}
+
+/* ============================================================================
+   DRIVER DOSSIER & CONTRACT NEGOTIATION MODAL
+   ============================================================================ */
+.drv-dossier-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;
+  margin-bottom: 14px;
+}
+.drv-dossier-stat {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;
+}
+.drv-dossier-stat span {
+  font-family: 'F1DisplayBold', sans-serif; font-size: .64rem; letter-spacing: .09em; color: var(--dim);
+}
+.drv-dossier-stat b {
+  font-family: 'F1DisplayBold', sans-serif; font-size: 1.05rem; color: #ffffff;
+}
+.drv-dossier-stat small {
+  font-size: .72rem; color: var(--dim);
+}
+.drv-dossier-h2h {
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.09);
+  border-radius: 6px; padding: 11px 14px; margin-bottom: 12px;
+}
+.drv-dossier-sec {
+  font-family: 'F1DisplayBold', sans-serif; font-size: .68rem; letter-spacing: .1em;
+  color: var(--gold); margin-bottom: 6px;
+}
+.drv-dossier-h2h-row {
+  display: flex; flex-wrap: wrap; gap: 14px; font-size: .82rem; color: var(--dim);
+}
+.drv-dossier-h2h-row b { color: #ffffff; }
+.drv-dossier-contract {
+  background: rgba(16, 19, 26, .88); border: 1px solid rgba(255,255,255,.16);
+  border-radius: 6px; padding: 14px 16px; margin-top: 12px;
+}
+
+/* ============================================================================
+   RACE WEEKEND: 24-DRIVER QUALIFYING SESSION & GRAND PRIX LOGGER TABLES
+   ============================================================================ */
+.rw-grid-table th, .rw-grid-table td {
+  padding: 6px 8px; vertical-align: middle;
+}
+.rw-grid-table select, .rw-grid-table input[type="text"] {
+  background: #12151d; color: #ffffff; border: 1px solid rgba(255,255,255,.18);
+  border-radius: 4px; padding: 5px 8px; font-family: 'F1Display', sans-serif; font-size: .82rem;
+}
+.rw-grid-table select:focus, .rw-grid-table input[type="text"]:focus {
+  outline: none; border-color: var(--accent);
+}

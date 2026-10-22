@@ -1,7 +1,7 @@
 // R&D ENGINE — Step A: Research (RP + days + D20 check) → Step B: Manufacture ($ + days for Car #1, Car #2, or Both) → 50/50 Car DP + #1 Driver Priority Speed Bonus.
-import { partById, APPROACHES } from '../data/partsCatalog.js?v=20261022k';
-import { CALENDAR } from '../data/calendar2026.js?v=20261022k';
-import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022k';
+import { partById, APPROACHES } from '../data/partsCatalog.js?v=20261022m';
+import { CALENDAR } from '../data/calendar2026.js?v=20261022m';
+import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022m';
 import {
   engineeringPhase,
   facilityEconomyStats,
@@ -9,9 +9,9 @@ import {
   hasFacilityNode,
   maxResearchSlots,
   maxManufactureSlots
-} from '../data/facilitiesCatalog.js?v=20261022k';
-import { addDays } from './timeEngine.js?v=20261022k';
-import { log, driverPriorityStatus } from './store.js?v=20261022k';
+} from '../data/facilitiesCatalog.js?v=20261022m';
+import { addDays } from './timeEngine.js?v=20261022m';
+import { log, driverPriorityStatus } from './store.js?v=20261022m';
 
 export function debutRound(isoDate) {
   const race = CALENDAR.find(r => r.sun >= isoDate);

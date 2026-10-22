@@ -1,7 +1,7 @@
 // HQ DASHBOARD — the advance-time agenda, active operations panel, and modal drawer.
 // Includes frosted-glass panels over the F1 garage backdrop, non-stacking weekly tick cards,
-// Race Weekend Hero Stop Card, Head of Engineering radio banner, and the exact F1 game
-// clockwise green sweep advancing reticle (1 full 360° revolution = 1 simulated day).
+// Two-Stage Race Weekend Hero Stop Card (Qualifying Session -> Grand Prix), Head of Engineering
+// radio banner, dynamic constructor HQ city names, and the F1 game clockwise green sweep reticle.
 import {
   getState,
   save,
@@ -12,27 +12,26 @@ import {
   importJSON,
   driverPriorityStatus,
   unmanufacturedBlueprints
-} from '../engine/store.js?v=20261022k';
-import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022k';
-import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022k';
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022k';
-import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022k';
+} from '../engine/store.js?v=20261022m';
+import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022m';
+import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022m';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022m';
+import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022m';
 import {
   FACILITY_BACKDROPS,
   FACILITY_BRANCHES,
   branchPhaseInfo,
   maxResearchSlots,
   maxManufactureSlots
-} from '../data/facilitiesCatalog.js?v=20261022k';
-import { DEPARTMENTS } from '../data/partsCatalog.js?v=20261022k';
+} from '../data/facilitiesCatalog.js?v=20261022m';
+import { DEPARTMENTS } from '../data/partsCatalog.js?v=20261022m';
 import {
   researchQuote,
   startResearch,
   manufactureQuote,
-  startManufacture,
-  debutRound
-} from '../engine/rdEngine.js?v=20261022k';
-import { topbarHTML, refreshHUD, floater, fmt$, openDeleteConfirmModal } from './shared.js?v=20261022k';
+  startManufacture
+} from '../engine/rdEngine.js?v=20261022m';
+import { topbarHTML, refreshHUD, floater, fmt$, openDeleteConfirmModal } from './shared.js?v=20261022m';
 
 let running = false;
 let rafId = null;
@@ -75,9 +74,11 @@ const SVG_DATE_CALENDAR = `
 `;
 
 function seasonLabel(s) {
-  if (s.date < CALENDAR[0].sat) return 'Pre-season · 2026';
+  const yr = (s.season || 1) === 1 ? '2026' : '2027';
+  const hqCity = teamById(s.teamId)?.hq || 'Factory';
+  if (s.date < CALENDAR[0].sat) return `Pre-season · ${yr} · ${hqCity} HQ`;
   const nr = nextRace(s.date);
-  return `Season 1 · Round ${nr ? nr.round : 22} of 22`;
+  return `Season ${s.season || 1} (${yr}) · Round ${nr ? nr.round : 22} of 22 · ${hqCity} HQ`;
 }
 
 function dateParts(iso) {
@@ -98,21 +99,23 @@ function taskProgressPct(s, task) {
   return Math.min(98, Math.max(8, Math.round((elapsed / total) * 100)));
 }
 
+// Finds any unlogged race weekend that has arrived (or where Qualifying was logged/skipped and GP is still pending)
 function activeRaceStop(s) {
-  return CALENDAR.find(r => (r.sat === s.date || r.sun === s.date) && !s.results[r.round]) || null;
+  return CALENDAR.find(r => !s.results?.[r.round] && (r.sat <= s.date || Boolean(s.qualifying?.[r.round]))) || null;
 }
 
 export function render(root) {
   stop();
   const s = getState();
   const team = teamById(s.teamId);
+  const hqCity = team.hq || 'Factory';
   const pu = puById(s.puId || team.pu);
   const spEcon = computeSponsorEconomy(s.teamId, s.activeSponsors);
   const signingCash = typeof s.signingCash === 'number' ? s.signingCash : spEcon.signingCashM;
   const puCost = typeof s.puCost === 'number' ? s.puCost : puContractCost(team, pu);
   const { ord, month } = dateParts(s.date);
   const bgUrl = FACILITY_BACKDROPS.hq;
-  const isDay1 = s.date === '2026-02-20';
+  const isDay1 = s.date === '2026-02-20' && Object.keys(s.results || {}).length === 0;
 
   root.innerHTML = `
     <div class="hq-shell" style="--hq-bg: url('${bgUrl}')">
@@ -156,7 +159,7 @@ export function render(root) {
           <div id="hq-race-hero"></div>
           <div class="feed glass hq-glass-feed" id="feed">
             <div class="hq-feed-head">
-              <span>TEAM HQ DISPATCH &amp; WEEKLY LEDGER</span>
+              <span>${hqCity.toUpperCase()} HQ DISPATCH &amp; WEEKLY LEDGER</span>
               <span class="hq-feed-sub" id="hq-feed-date">${prettyDate(s.date)}</span>
             </div>
             <div id="feed-items">
@@ -164,7 +167,7 @@ export function render(root) {
                 <div class="card pos feed-day1-card"><div><div class="ct">Sponsor Signing Bonus</div><div class="cs">${team.name} sponsor package — Day 1 payout (+$${spEcon.weeklyIncomeK}k/wk recurring)</div></div><div class="amt pos">+${fmt$(signingCash)}</div></div>
                 <div class="card neg feed-day1-card"><div><div class="ct">Power Unit — ${pu ? pu.name : 'In-House'}</div><div class="cs">${team.works ? 'In-House Works PU R&D & Dyno Cap Allocation' : 'Customer engine supply contract'} — deducted from bank</div></div><div class="amt neg">−${fmt$(puCost)}</div></div>
               ` : ''}
-              <div class="hint" id="hint">Hit <b>ADVANCE</b> (or click the circular reticle) to roll the calendar forward. Weekly Monday income/costs replace the previous week's ledger card cleanly, and advancing stops automatically on Race Weekends.</div>
+              <div class="hint" id="hint">Hit <b>ADVANCE</b> (or click the circular reticle) to roll the calendar forward. Weekly Monday income/costs and 11-team AI background R&amp;D update automatically, and advancing pauses on Race Weekends.</div>
             </div>
           </div>
         </div>
@@ -175,7 +178,7 @@ export function render(root) {
       <div id="hq-drawer-slot"></div>
 
       <div class="foot hq-foot">
-        Car power — true value <b style="color:#fff">${truePower().toFixed(2)}</b> · Monoposto input <b style="color:#fff">${monopostoPower()}</b>
+        ${team.hqFull || hqCity} · Car power — true value <b style="color:#fff">${truePower().toFixed(2)}</b> · Monoposto input <b style="color:#fff">${monopostoPower()}</b>
         (the game takes integers; the fraction is real progress).<br>
         Save tools: <a href="#" id="exp">Export JSON</a> · <a href="#" id="imp">Import JSON</a> · <a href="#" id="wipe">Delete save</a>
         <input type="file" id="impfile" accept=".json" style="display:none">
@@ -223,7 +226,6 @@ export function render(root) {
     const elapsed = now - dayStartTs;
     const ring = document.getElementById('ring');
     if (elapsed >= DAY_SWEEP_MS) {
-      // Completed 1 full 360° clockwise revolution at 12 o'clock -> advance 1 calendar day
       dayStartTs = now - ((elapsed - DAY_SWEEP_MS) % DAY_SWEEP_MS);
       if (ring) ring.style.setProperty('--sweep-deg', '0deg');
       const keepGoing = stepDay();
@@ -323,16 +325,25 @@ export function render(root) {
       return;
     }
     const pending = unmanufacturedBlueprints(st);
+    const qState = st.qualifying?.[race.round] || null;
+    const qualiDone = Boolean(qState);
+    const stageEyebrow = qualiDone
+      ? `RACE WEEKEND IN PROGRESS · ROUND ${race.round} OF 22 · ${qState.skipped ? 'QUALIFYING SKIPPED' : 'QUALIFYING LOGGED'}`
+      : `RACE WEEKEND ARRIVED · ROUND ${race.round} OF 22 · STAGE 1: QUALIFYING SESSION`;
+    const ctaLabel = qualiDone
+      ? 'CONTINUE TO GRAND PRIX →'
+      : 'GO TO QUALIFYING SESSION →';
+
     slot.innerHTML = `
       <div class="hq-race-stop-card">
         <div class="hq-race-stop-top">
           <span class="hq-race-flag">${race.flag}</span>
           <div>
-            <div class="hq-race-eyebrow">RACE WEEKEND ARRIVED · ROUND ${race.round} OF 22</div>
+            <div class="hq-race-eyebrow">${stageEyebrow}</div>
             <div class="hq-race-title">${race.gp.toUpperCase()}</div>
             <div class="hq-race-sub">${race.circuit} · ${race.laps} Laps · Monoposto Car Power <b>${monopostoPower()}</b></div>
           </div>
-          <a class="btn primary hq-race-cta" href="#/race">GO TO RACE WEEKEND →</a>
+          <a class="btn primary hq-race-cta" href="#/race">${ctaLabel}</a>
         </div>
         ${pending.length > 0 ? `
           <div class="hq-race-warn">
@@ -366,7 +377,7 @@ export function render(root) {
       <div class="hq-radio-banner glass">
         <div class="hq-radio-avatar">RD</div>
         <div class="hq-radio-body">
-          <div class="hq-radio-speaker">HEAD OF ENGINEERING · WEISSACH TEAM RADIO</div>
+          <div class="hq-radio-speaker">HEAD OF ENGINEERING · ${hqCity.toUpperCase()} TEAM RADIO</div>
           <div class="hq-radio-quote">"Hey, Chief. We've got parts out of research. Don't forget to develop them."</div>
           <div class="hq-radio-meta">${pending.length} researched blueprint${pending.length === 1 ? '' : 's'} awaiting manufacturing: <b>${names}${pending.length > 3 ? ` +${pending.length - 3} more` : ''}</b></div>
         </div>
@@ -399,7 +410,7 @@ export function render(root) {
       <section class="hq-ops-panel glass">
         <div class="hq-ops-header">
           <div>
-            <div class="hq-ops-title">ACTIVE FACTORY OPERATIONS — WEISSACH CONTROL</div>
+            <div class="hq-ops-title">ACTIVE FACTORY OPERATIONS — ${hqCity.toUpperCase()} CONTROL</div>
             <div class="hq-ops-sub">
               Car #${prio.d1 ? prio.d1.no : '1'} (${prio.d1 ? prio.d1.last : 'D1'}): <b>${prio.car1Upgrades} upgrades</b>${prio.priorityCar === 1 ? ' <span class="tag good">★ +1 SPD PRIORITY</span>' : ''}
               &nbsp;·&nbsp;
@@ -467,7 +478,7 @@ export function render(root) {
                   <div class="hq-op-sub">${t.label} · Due ${prettyDate(t.due)}</div>
                   <div class="hq-op-bar gold"><i style="width:${pct}%"></i></div>
                 </div>`;
-              }).join('') : `<div class="hq-op-empty">No HQ facility sub-upgrades under construction.</div>`}
+              }).join('') : `<div class="hq-op-empty">No ${hqCity} HQ facility sub-upgrades under construction.</div>`}
             </div>
             <button class="btn small hq-op-add" data-open-drawer="facility">+ UPGRADE FACILITY ($)</button>
           </div>
@@ -511,7 +522,7 @@ export function render(root) {
         }
       }
       bodyHTML = `
-        <div class="hq-drawer-sub">Available blueprints unlocked for immediate wind-tunnel research (Balance: <b>${st.rp} RP</b>):</div>
+        <div class="hq-drawer-sub">Available blueprints unlocked for immediate wind-tunnel research at ${hqCity} HQ (Balance: <b>${st.rp} RP</b>):</div>
         <div class="hq-drawer-list">
           ${available.length ? available.map(({ dept, part, q }) => `
             <div class="hq-drawer-row">
@@ -539,7 +550,7 @@ export function render(root) {
         }
       }
       bodyHTML = `
-        <div class="hq-drawer-sub">Researched blueprints ready for physical manufacturing (Bank: <b>${fmt$(st.cash)}</b>):</div>
+        <div class="hq-drawer-sub">Researched blueprints ready for physical manufacturing at ${hqCity} HQ (Bank: <b>${fmt$(st.cash)}</b>):</div>
         <div class="hq-drawer-list">
           ${buildable.length ? buildable.map(({ dept, part, q1, q2, qB, state: ps }) => `
             <div class="hq-drawer-row">
@@ -575,7 +586,7 @@ export function render(root) {
         }
       }
       bodyHTML = `
-        <div class="hq-drawer-sub">Unlocked Weissach HQ sub-upgrades available for construction (Bank: <b>${fmt$(st.cash)}</b>):</div>
+        <div class="hq-drawer-sub">Unlocked ${hqCity} HQ sub-upgrades available for construction (Bank: <b>${fmt$(st.cash)}</b>):</div>
         <div class="hq-drawer-list">
           ${buildableNodes.length ? buildableNodes.map(({ branch, phase, node }) => `
             <div class="hq-drawer-row">
@@ -585,7 +596,7 @@ export function render(root) {
               </div>
               <button class="btn small" data-drawer-fac="${node.id}">BUILD · ${fmt$(node.cost)} · ${node.days}d</button>
             </div>
-          `).join('') : '<div class="hq-op-empty">Every HQ facility sub-upgrade is either built or currently under construction!</div>'}
+          `).join('') : `<div class="hq-op-empty">Every ${hqCity} HQ facility sub-upgrade is either built or currently under construction!</div>`}
         </div>
       `;
     }
@@ -653,16 +664,13 @@ export function render(root) {
     if (!feedItems) return;
     const hint = document.getElementById('hint');
     if (hint) hint.remove();
-    // Remove Day 1 static cards once live events begin firing
     feedItems.querySelectorAll('.feed-day1-card').forEach(el => el.remove());
 
     if (isWeeklyTick) {
-      // Replace previous Monday's weekly tick cards instead of stacking forever
       feedItems.querySelectorAll('.feed-tick-card').forEach(el => el.remove());
       feedItems.insertAdjacentHTML('afterbegin', html);
     } else {
       feedItems.insertAdjacentHTML('afterbegin', html);
-      // Keep non-tick event notifications tidy (cap at 5 recent banners)
       const banners = feedItems.querySelectorAll('.feed-event-banner');
       if (banners.length > 5) {
         for (let i = 5; i < banners.length; i++) banners[i].remove();
@@ -671,13 +679,15 @@ export function render(root) {
   }
 
   function fireEvent(ev) {
+    const st = getState();
     if (ev.type === 'tick') {
       floater('hud-cash', `+${fmt$(ev.income)}`, 'pos');
       floater('hud-rp', `+${ev.rp} RP`, 'pos');
+      const merchK = Math.round((ev.fanMerchM || 0) * 1000);
       pushFeedItem(`
-        <div class="card pos feed-tick-card"><div><div class="ct">Weekly Sponsor Base Income</div><div class="cs">Monday settlement · Recurring weekly payout (${prettyDate(getState().date)})</div></div><div class="amt pos">+${fmt$(ev.income)}</div></div>
-        <div class="card neg feed-tick-card"><div><div class="ct">Weissach HQ Running Costs</div><div class="cs">Weekly department &amp; facility operating overhead</div></div><div class="amt neg">−${fmt$(ev.costs)}</div></div>
-        <div class="card pos feed-tick-card"><div><div class="ct">Weekly Resource Points</div><div class="cs">Engineering &amp; Personnel generation · ATR applied</div></div><div class="amt pos">+${ev.rp} RP</div></div>
+        <div class="card pos feed-tick-card"><div><div class="ct">Weekly Sponsor &amp; Fan Merchandise Income</div><div class="cs">Monday settlement (${prettyDate(st.date)}) · Includes +$${merchK}k Fan Rating (${st.fanRating}) Merch</div></div><div class="amt pos">+${fmt$(ev.income)}</div></div>
+        <div class="card neg feed-tick-card"><div><div class="ct">${hqCity} HQ Running Costs</div><div class="cs">Weekly department &amp; facility operating overhead</div></div><div class="amt neg">−${fmt$(ev.costs)}</div></div>
+        <div class="card pos feed-tick-card"><div><div class="ct">Weekly Resource Points &amp; AI Grid R&amp;D</div><div class="cs">Engineering output (ATR ${Math.round((ev.atrMult || 1) * 100)}%) · 11 AI teams progressed background R&amp;D</div></div><div class="amt pos">+${ev.rp} RP</div></div>
       `, true);
     } else if (ev.type === 'research') {
       const cls = ev.outcome === 'failure' ? 'red' : ev.outcome === 'breakthrough' ? 'blue' : '';
@@ -685,7 +695,7 @@ export function render(root) {
     } else if (ev.type === 'manufacture') {
       pushFeedItem(`<div class="banner blue feed-event-banner"><div class="bt">${ev.title}</div><div class="bs">${ev.label}</div></div>`, false);
     } else if (ev.type === 'facility') {
-      pushFeedItem(`<div class="banner feed-event-banner"><div class="bt">Facility Upgrade Operational</div><div class="bs">${ev.title} — ${ev.label}</div></div>`, false);
+      pushFeedItem(`<div class="banner feed-event-banner"><div class="bt">Facility Upgrade Operational at ${hqCity} HQ</div><div class="bs">${ev.title} — ${ev.label}</div></div>`, false);
     } else if (ev.type === 'race') {
       renderRaceHero(ev.race);
     }

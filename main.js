@@ -1,17 +1,17 @@
 // Entry point + hash router. No save → championship creation; save → Matrix.
-import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.js?v=20261022k';
-import { applyTheme } from './engine/themeEngine.js?v=20261022k';
-import { openDeleteConfirmModal } from './views/shared.js?v=20261022k';
-import { render as StartWizard } from './views/StartWizardView.js?v=20261022k';
-import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022k';
-import { render as HQ } from './views/HqDashboardView.js?v=20261022k';
-import { render as RaceWeekend } from './views/RaceWeekendView.js?v=20261022k';
-import { render as ResearchDev } from './views/ResearchDevView.js?v=20261022k';
-import { render as Facilities } from './views/FacilitiesView.js?v=20261022k';
-import { render as Standings } from './views/StandingsView.js?v=20261022k';
-import { render as DevGraph } from './views/DevGraphView.js?v=20261022k';
-import { render as SponsorsStaff } from './views/SponsorsStaffView.js?v=20261022k';
-import { render as DriverMarket } from './views/DriverMarketView.js?v=20261022k';
+import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.js?v=20261022m';
+import { applyTheme } from './engine/themeEngine.js?v=20261022m';
+import { openDeleteConfirmModal } from './views/shared.js?v=20261022m';
+import { render as StartWizard } from './views/StartWizardView.js?v=20261022m';
+import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022m';
+import { render as HQ } from './views/HqDashboardView.js?v=20261022m';
+import { render as RaceWeekend } from './views/RaceWeekendView.js?v=20261022m';
+import { render as ResearchDev } from './views/ResearchDevView.js?v=20261022m';
+import { render as Facilities } from './views/FacilitiesView.js?v=20261022m';
+import { render as Standings } from './views/StandingsView.js?v=20261022m';
+import { render as DevGraph } from './views/DevGraphView.js?v=20261022m';
+import { render as SponsorsStaff } from './views/SponsorsStaffView.js?v=20261022m';
+import { render as DriverMarket } from './views/DriverMarketView.js?v=20261022m';
 
 const ROUTES = {
   start: StartWizard, matrix: ChampionshipMatrix, hq: HQ, race: RaceWeekend, rd: ResearchDev,

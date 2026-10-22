@@ -1,19 +1,21 @@
 // TIME ENGINE — the advance-time clock (SPEC §4).
 // advance() moves the save one day forward and returns everything that fired:
 // task completions (research / manufacture / facility sub-upgrades), the Monday
-// weekly tick, and race-weekend arrivals.
-import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022k';
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022k';
-import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022k';
+// weekly tick (including 11-team AI background R&D and Fan Rating merchandise income),
+// and race-weekend arrivals.
+import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022m';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022m';
+import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022m';
 import {
   facilityNodeById,
   hasFacilityNode,
   branchPhaseInfo,
   syncLegacyFacilities,
   facilityEconomyStats
-} from '../data/facilitiesCatalog.js?v=20261022k';
-import { resolveResearch, resolveManufacture } from './rdEngine.js?v=20261022k';
-import { log, save } from './store.js?v=20261022k';
+} from '../data/facilitiesCatalog.js?v=20261022m';
+import { resolveResearch, resolveManufacture } from './rdEngine.js?v=20261022m';
+import { ensureAiState, tickAiTeamsRd, isRegAdaptationUnlocked, REG_FOCUS_MODES } from './aiRdEngine.js?v=20261022m';
+import { log, save } from './store.js?v=20261022m';
 
 // --- date helpers ------------------------------------------------------------
 export const DAY = 86400000;
@@ -34,28 +36,53 @@ export const SEASON_WEEKS = 38;
 
 // --- weekly tick ---------------------------------------------------------------
 export function weeklyTick(state) {
+  ensureAiState(state);
   const facStats = facilityEconomyStats(state);
   const spEcon = computeSponsorEconomy(state.teamId, state.activeSponsors);
-  let sponsorWk = spEcon.weeklyIncomeM; // Active sponsors pay 100% weekly + 35% passive board retainer
-  let income = sponsorWk + facStats.commercialWkM;
+  const sponsorWk = spEcon.weeklyIncomeM; // Active sponsors pay 100% weekly + 35% passive board retainer
+  const fanMerchM = +((Math.max(1, state.fanRating || 12) * 0.01)).toFixed(3); // +$10k × Fan Rating weekly merchandise revenue
+  let income = sponsorWk + facStats.commercialWkM + fanMerchM;
   if (state.ownerBg === 'cfo') income *= 1.1;
 
   const costs = facStats.runningCostM; // $287k/wk at Basic -> $459k/wk at Advanced -> $602k/wk at Extensive
   let rp = facStats.weeklyRp;          // 113 RP/wk at Basic -> 216 RP/wk at Advanced -> 305 RP/wk at Extensive
-  const power = teamById(state.teamId).carPower;
-  rp *= power <= 5 ? 1.15 : power >= 7 ? 0.90 : 1.0; // ATR anti-snowball
+
+  // Apply live FIA ATR Wind Tunnel Multiplier (from Round 7 / Round 14 Constructors' Standings reset)
+  const atrMult = state.aiTeams?.[state.teamId]?.atrMult
+    || (teamById(state.teamId).carPower <= 5 ? 1.10 : teamById(state.teamId).carPower >= 7 ? 0.85 : 1.0);
+  rp *= atrMult;
+
   if (state.ownerBg === 'head-engineer') rp *= 1.1;
+
+  // If Round 16+ Next-Season Regulation Focus is active, split RP according to player's chosen mode
+  if (isRegAdaptationUnlocked(state) && state.regFocus && state.regFocus !== 'current') {
+    const mode = REG_FOCUS_MODES[state.regFocus] || REG_FOCUS_MODES.current;
+    rp *= Math.max(0.25, mode.currentShare || 0.25);
+  }
   rp = Math.round(rp);
 
   state.cash = +(state.cash + income - costs).toFixed(2);
   state.rp += rp;
-  log('weekly-tick', { income: +income.toFixed(2), costs: +costs.toFixed(2), rp });
+
+  // Tick all 11 AI teams' background R&D progress and upgrade queues
+  tickAiTeamsRd(state);
+
+  log('weekly-tick', {
+    income: +income.toFixed(2),
+    fanMerchM: +fanMerchM.toFixed(2),
+    costs: +costs.toFixed(2),
+    rp,
+    atrMult: +atrMult.toFixed(2)
+  });
+
   return {
     type: 'tick',
     date: state.date,
     income: +income.toFixed(2),
+    fanMerchM: +fanMerchM.toFixed(2),
     costs: +costs.toFixed(2),
-    rp
+    rp,
+    atrMult: +atrMult.toFixed(2)
   };
 }
 
@@ -69,7 +96,7 @@ export function agenda(state, windowDays = 7) {
   // next weekly tick (fixture)
   let d = addDays(state.date, 1);
   while (!isMonday(d)) d = addDays(d, 1);
-  if (d <= horizon) items.push({ date: d, kind: 'tick', title: 'Weekly tick', label: 'Base income · running costs · resource points' });
+  if (d <= horizon) items.push({ date: d, kind: 'tick', title: 'Weekly tick', label: 'Base income · fan merch · running costs · RP & AI R&D' });
   // next race weekend (fixture) — always listed once inside the window
   const race = nextRace(state.date);
   if (race && race.sat <= horizon) items.push({ date: race.sat, kind: 'race', title: race.gp, label: `Race weekend — ${race.circuit}`, race });
@@ -78,7 +105,6 @@ export function agenda(state, windowDays = 7) {
 
 // --- facility sub-upgrade purchases --------------------------------------------
 export function queueFacility(state, nodeIdOrBranchId, legacyNode, legacyToLevel) {
-  // Support both new single-arg queueFacility(state, nodeId) and legacy 3-arg calls
   const node = facilityNodeById(nodeIdOrBranchId) || legacyNode;
   if (!node) return { error: 'Unknown facility upgrade' };
   const nodeId = node.id || nodeIdOrBranchId;
@@ -139,7 +165,7 @@ export function advance(state) {
       const nodeId = task.nodeId || task.facilityId;
       state.facilityNodes[nodeId] = true;
       const node = facilityNodeById(nodeId);
-      if (node?.fanBonus) state.fanRating += node.fanBonus;
+      if (node?.fanBonus) state.fanRating = Math.min(100, (state.fanRating || 12) + node.fanBonus);
       syncLegacyFacilities(state);
       const info = node?.branchId ? branchPhaseInfo(state, node.branchId) : null;
       const phaseUp = info && info.currentPhase > (task.phase || 1)

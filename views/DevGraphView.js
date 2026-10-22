@@ -1,32 +1,33 @@
 // DEV GRAPH — Authentic F1 "VEHICLE PERFORMANCE COMPARISON" chart.
-// Features the vertical white baseline marker at Car Power 4.00 (where the lowest
-// starting speed cars just touch the baseline, and cars move ahead to the right
-// of the baseline as their Car Power increases across the season).
-import { TEAMS, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022k';
-import { getState, truePower } from '../engine/store.js?v=20261022k';
-import { topbarHTML } from './shared.js?v=20261022k';
+// Displays the vertical white baseline marker at Car Power 4.00 (or Season-2 Minimum Baseline),
+// each team's Season-Start Baseline segment, and their In-Season R&D Gain segment.
+import { TEAMS, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022m';
+import { getState, truePower, teamTruePower, teamSeasonStartPower, driverLiveStats } from '../engine/store.js?v=20261022m';
+import { topbarHTML } from './shared.js?v=20261022m';
 
-// Baseline Car Power = 4.00 sits at 38% of the horizontal track width.
-// Cars at 4.00 (Haas, Cadillac, BMW at season start) touch the vertical line at 38%;
-// higher base power and R&D upgrades extend the bar to the right of the vertical line (up to 10.00 = 100%).
 export const BASELINE_PCT = 38;
 
-export function powerToBarPct(powerVal) {
-  const clamped = Math.max(3.0, Math.min(10.0, +powerVal || 4.0));
-  if (clamped <= 4.0) {
-    return +((clamped / 4.0) * BASELINE_PCT).toFixed(2);
+export function powerToBarPct(powerVal, minBase = 4.0) {
+  const clamped = Math.max(3.0, Math.min(10.0, +powerVal || minBase));
+  if (clamped <= minBase) {
+    return +((clamped / minBase) * BASELINE_PCT).toFixed(2);
   }
-  return +(BASELINE_PCT + ((clamped - 4.0) / 6.0) * (100 - BASELINE_PCT)).toFixed(2);
+  return +(BASELINE_PCT + ((clamped - minBase) / (10.0 - minBase)) * (100 - BASELINE_PCT)).toFixed(2);
 }
 
 export function vehiclePerformanceComparisonHTML(s = getState(), projectedDpGain = 0) {
-  const speedSum = t => driversOfTeam(t.id).reduce((a, d) => a + d.speed, 0);
+  const season = s?.season || 1;
+  const minGridBase = Math.min(...TEAMS.map(t => teamSeasonStartPower(t.id, s)), 4.0);
+  const speedSum = t => driversOfTeam(t.id, s).reduce((a, d) => a + driverLiveStats(d.id, s).speed, 0);
+
   const rows = TEAMS.map(t => {
-    const extraDp = (s.teamDp && s.teamDp[t.id]) ? s.teamDp[t.id] / 100 : 0;
-    const val = t.id === s.teamId ? truePower() : t.carPower + extraDp;
+    const startVal = teamSeasonStartPower(t.id, s);
+    const liveVal = teamTruePower(t.id, s);
     return {
       team: t,
-      value: val,
+      startVal,
+      value: liveVal,
+      seasonGain: Math.max(0, +(liveVal - startVal).toFixed(2)),
       mine: t.id === s.teamId,
       tieSpeed: speedSum(t)
     };
@@ -35,30 +36,33 @@ export function vehiclePerformanceComparisonHTML(s = getState(), projectedDpGain
   return `
     <div class="f1-perf-panel">
       <div class="f1-perf-head">
-        <h2 class="f1-perf-title">VEHICLE PERFORMANCE COMPARISON</h2>
+        <h2 class="f1-perf-title">VEHICLE PERFORMANCE COMPARISON — SEASON ${season} (${season === 1 ? '2026' : '2027'})</h2>
         <div class="f1-perf-legend">
-          <span><i class="f1-leg-line"></i> Base Development Line (4.00)</span>
-          <span><i class="f1-leg-you"></i> Your Constructor (${truePower().toFixed(2)})</span>
+          <span><i class="f1-leg-line"></i> Season Base Line (${minGridBase.toFixed(2)})</span>
+          <span><i class="f1-leg-you"></i> Your Constructor (${truePower(s).toFixed(2)})</span>
         </div>
       </div>
       <div class="f1-perf-chart">
         ${rows.map(r => {
-          const widthPct = powerToBarPct(r.value);
+          const startPct = powerToBarPct(r.startVal, minGridBase);
+          const totalPct = powerToBarPct(r.value, minGridBase);
+          const inSeasonExtensionPct = Math.max(0, +(totalPct - startPct).toFixed(2));
           const gainPower = r.mine && projectedDpGain > 0 ? r.value + (projectedDpGain / 100) : r.value;
-          const gainPct = r.mine && projectedDpGain > 0 ? Math.max(1.2, +(powerToBarPct(gainPower) - widthPct).toFixed(2)) : 0;
+          const gainPct = r.mine && projectedDpGain > 0 ? Math.max(1.2, +(powerToBarPct(gainPower, minGridBase) - totalPct).toFixed(2)) : 0;
           return `
             <div class="f1-perf-row ${r.mine ? 'is-player' : ''}">
               <div class="f1-perf-track-wrap">
                 <div class="f1-perf-track">
-                  <div class="f1-perf-fill ${r.mine ? 'mine' : ''}" style="width:${widthPct}%"></div>
-                  ${gainPct > 0 ? `<div class="f1-perf-gain" style="left:${widthPct}%;width:${gainPct}%" title="+${projectedDpGain} DP Projected Upgrade Gain"></div>` : ''}
+                  <div class="f1-perf-fill ${r.mine ? 'mine' : ''}" style="width:${startPct}%" title="Season ${season} Starting Baseline: ${r.startVal.toFixed(2)}"></div>
+                  ${inSeasonExtensionPct > 0 ? `<div class="f1-perf-fill ${r.mine ? 'mine' : ''}" style="left:${startPct}%;width:${inSeasonExtensionPct}%;position:absolute;top:0;bottom:0;opacity:0.82;filter:brightness(1.25)" title="In-Season R&D Gain: +${r.seasonGain.toFixed(2)}"></div>` : ''}
+                  ${gainPct > 0 ? `<div class="f1-perf-gain" style="left:${totalPct}%;width:${gainPct}%" title="+${projectedDpGain} DP Projected Upgrade Gain"></div>` : ''}
                 </div>
-                <div class="f1-perf-baseline" style="left:${BASELINE_PCT}%" title="Season Base Development (Car Power 4.00)"></div>
+                <div class="f1-perf-baseline" style="left:${BASELINE_PCT}%" title="Season Base Development (${minGridBase.toFixed(2)})"></div>
               </div>
               <div class="f1-perf-team">
                 <span class="f1-perf-swatch" style="background:${r.team.color}"></span>
-                <span class="f1-perf-name">${r.mine ? r.team.name.toUpperCase() : r.team.name}</span>
-                <span class="f1-perf-val">${r.mine ? r.value.toFixed(2) : r.value.toFixed(1)}</span>
+                <span class="f1-perf-name" title="${r.team.hq} HQ · Start ${r.startVal.toFixed(2)} + ${r.seasonGain.toFixed(2)} R&D">${r.mine ? r.team.name.toUpperCase() : r.team.name}</span>
+                <span class="f1-perf-val">${r.value.toFixed(2)}</span>
               </div>
             </div>
           `;
@@ -70,16 +74,17 @@ export function vehiclePerformanceComparisonHTML(s = getState(), projectedDpGain
 
 export function render(root) {
   const s = getState();
+  const season = s.season || 1;
   root.innerHTML = `
     ${topbarHTML(true)}
     <div class="f1rd-page-wrap">
-      <h1 class="page">DEVELOPMENT GRAPH</h1>
+      <h1 class="page">DEVELOPMENT GRAPH — SEASON ${season}</h1>
       <div class="sub">
-        The vertical white line marks the season-start base development level (Car Power <b>4.00</b>). Lowest-speed starting cars touch the baseline, and cars move ahead of the line as R&amp;D upgrades are fitted across the season.
+        The vertical white line marks the season-start minimum baseline. Each constructor bar displays its <b>Season-${season} Starting Baseline</b> plus its <b>In-Season R&amp;D Development Gain</b> as upgrades are fitted across the calendar by both your team and the 11 AI teams.
       </div>
       ${vehiclePerformanceComparisonHTML(s)}
       <div class="foot">
-        Baseline: Monoposto 2026 canon (Mercedes 7.0 · Ferrari / Red Bull / McLaren 6.0 · Aston Martin / Williams / Audi / Porsche / BYD 5.0 · Haas / Cadillac / BMW 4.0 touching the base line).
+        Season 1 Baseline: Mercedes 7.00 · Ferrari / Red Bull / McLaren 6.00 · Aston Martin / Williams / Audi / Porsche / BYD 5.00 · Haas / Cadillac / BMW 4.00. Season 2 Baselines incorporate R16–R22 Technical Directive Part-Ban Protection.
       </div>
     </div>
   `;

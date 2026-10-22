@@ -7,15 +7,15 @@
 //                           Translucent Spec Box, Calendar Timeline with GP Flags, Standard / Rush
 //                           F1 Reticle Action Cards, UNLOCKS preview, and Vehicle Performance Comparison.
 
-import { DEPARTMENTS, APPROACHES, partById, partsUnlockedBy } from '../data/partsCatalog.js?v=20261022k';
-import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022k';
+import { DEPARTMENTS, APPROACHES, partById, partsUnlockedBy } from '../data/partsCatalog.js?v=20261022m';
+import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022m';
 import {
   engineeringPhase,
   facilityEconomyStats,
   hasDualBuild,
   maxResearchSlots,
   maxManufactureSlots
-} from '../data/facilitiesCatalog.js?v=20261022k';
+} from '../data/facilitiesCatalog.js?v=20261022m';
 import {
   getState,
   save,
@@ -23,17 +23,17 @@ import {
   monopostoPower,
   driverPriorityStatus,
   unmanufacturedBlueprints
-} from '../engine/store.js?v=20261022k';
+} from '../engine/store.js?v=20261022m';
 import {
   researchQuote,
   startResearch,
   manufactureQuote,
   startManufacture,
   debutRound
-} from '../engine/rdEngine.js?v=20261022k';
-import { prettyDate, addDays } from '../engine/timeEngine.js?v=20261022k';
-import { vehiclePerformanceComparisonHTML } from './DevGraphView.js?v=20261022k';
-import { topbarHTML, fmt$ } from './shared.js?v=20261022k';
+} from '../engine/rdEngine.js?v=20261022m';
+import { prettyDate, addDays } from '../engine/timeEngine.js?v=20261022m';
+import { vehiclePerformanceComparisonHTML } from './DevGraphView.js?v=20261022m';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022m';
 
 let activeSubTab = 'performance'; // 'performance' | 'inprogress' | 'history'
 let rdScreen = 'hub';             // 'hub' | 'subcategory' | 'detail'

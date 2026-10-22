@@ -392,7 +392,7 @@ export const FACILITY_BRANCHES = [
         nodes: [
           {
             id: 'cor_p3_campus',
-            name: 'Weissach Brand Experience Campus',
+            name: 'Global Brand Experience Campus',
             cost: 5.2,
             days: 28,
             weeklyRp: 10,

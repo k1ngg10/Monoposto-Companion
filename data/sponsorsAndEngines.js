@@ -14,7 +14,7 @@
 // within a tight, fair band across all 12 teams, and Works teams pay an In-House
 // Factory PU Cap Allocation on Day 1 so Works and Customer teams start on an equal footing.
 
-import { LOGO_DATA } from './logoData.js?v=20261022b';
+import { LOGO_DATA } from './logoData.js?v=20261022h';
 
 const WHITE_WELL = 'linear-gradient(135deg, #ffffff 0%, #f1f4f9 100%)';
 
@@ -253,7 +253,7 @@ export const TEAM_SPONSORS = {
       strategyTag: 'HIGH BASE · LOW WEEKLY',
       signingM: 5.05, weeklyK: 115, goalK: 190, value: 13.60,
       objectiveType: 'Brand Exposure',
-      logo: 'https://logos-world.net/wp-content/uploads/2023/05/Saudi-Aramco-Logo.png',
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/Saudi_Aramco_logo_without_star.png',
       logoBg: WHITE_WELL,
       objective: 'Score a Top-6 finish this weekend'
     },

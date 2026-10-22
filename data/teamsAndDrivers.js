@@ -3,7 +3,7 @@
 // Team logos: `logo` is an SVG file in assets/logos/ (user-supplied links,
 // 2026-10-21). Marks that only exist as PNG/JPG live in logoData.js as
 // data URIs — resolve a team's mark with logoOf(), never team.logo alone.
-import { LOGO_DATA } from './logoData.js?v=20261022b';
+import { LOGO_DATA } from './logoData.js?v=20261022h';
 export const logoOf = t => LOGO_DATA[t.id] || t.logo || null;
 export const TEAMS = [
   { id: 'porsche',  name: 'Apple Porsche',        short: 'POR', color: '#f5c542', carPower: 5, pu: 'porsche', works: true,  tier: 'newcomer', logo: null,

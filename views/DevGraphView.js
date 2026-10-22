@@ -2,9 +2,9 @@
 // Features the vertical white baseline marker at Car Power 4.00 (where the lowest
 // starting speed cars just touch the baseline, and cars move ahead to the right
 // of the baseline as their Car Power increases across the season).
-import { TEAMS, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022b';
-import { getState, truePower } from '../engine/store.js?v=20261022b';
-import { topbarHTML } from './shared.js?v=20261022b';
+import { TEAMS, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022h';
+import { getState, truePower } from '../engine/store.js?v=20261022h';
+import { topbarHTML } from './shared.js?v=20261022h';
 
 // Baseline Car Power = 4.00 sits at 38% of the horizontal track width.
 // Cars at 4.00 (Haas, Cadillac, BMW at season start) touch the vertical line at 38%;

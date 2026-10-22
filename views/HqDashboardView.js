@@ -11,27 +11,27 @@ import {
   importJSON,
   driverPriorityStatus,
   unmanufacturedBlueprints
-} from '../engine/store.js?v=20261022b';
-import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022b';
-import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022b';
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022b';
-import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022b';
+} from '../engine/store.js?v=20261022h';
+import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022h';
+import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022h';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022h';
+import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022h';
 import {
   FACILITY_BACKDROPS,
   FACILITY_BRANCHES,
   branchPhaseInfo,
   maxResearchSlots,
   maxManufactureSlots
-} from '../data/facilitiesCatalog.js?v=20261022b';
-import { DEPARTMENTS } from '../data/partsCatalog.js?v=20261022b';
+} from '../data/facilitiesCatalog.js?v=20261022h';
+import { DEPARTMENTS } from '../data/partsCatalog.js?v=20261022h';
 import {
   researchQuote,
   startResearch,
   manufactureQuote,
   startManufacture,
   debutRound
-} from '../engine/rdEngine.js?v=20261022b';
-import { topbarHTML, refreshHUD, floater, fmt$ } from './shared.js?v=20261022b';
+} from '../engine/rdEngine.js?v=20261022h';
+import { topbarHTML, refreshHUD, floater, fmt$ } from './shared.js?v=20261022h';
 
 let running = false, timer = null;
 let drawerMode = null; // null | 'research' | 'manufacture' | 'facility'

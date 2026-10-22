@@ -1,13 +1,13 @@
 // RACE WEEKEND — renders entirely from the calendar row + the save.
 // Race length is selectable; distance = laps × lap length, computed live.
 // Results are logged AFTER the game is played — the app never dictates them.
-import { CALENDAR } from '../data/calendar2026.js?v=20261022b';
-import { TRACK_MAPS } from '../data/trackMaps.js?v=20261022b';
-import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022b';
-import { getState, save } from '../engine/store.js?v=20261022b';
-import { logResult } from '../engine/raceSimulator.js?v=20261022b';
-import { prettyDate } from '../engine/timeEngine.js?v=20261022b';
-import { topbarHTML } from './shared.js?v=20261022b';
+import { CALENDAR } from '../data/calendar2026.js?v=20261022h';
+import { TRACK_MAPS } from '../data/trackMaps.js?v=20261022h';
+import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022h';
+import { getState, save } from '../engine/store.js?v=20261022h';
+import { logResult } from '../engine/raceSimulator.js?v=20261022h';
+import { prettyDate } from '../engine/timeEngine.js?v=20261022h';
+import { topbarHTML } from './shared.js?v=20261022h';
 
 function rangeLabel(race) {
   const sat = prettyDate(race.sat), sun = prettyDate(race.sun);
@@ -43,82 +43,61 @@ export function render(root) {
   const logged = s.results[race.round];
   let laps = logged?.laps || race.laps;
 
-  let selectedRound = race.round;
-
   const draw = msg => {
-    const curRace = CALENDAR.find(r => r.round === selectedRound) || race;
-    const curLogged = s.results[curRace.round];
-    if (typeof draw.lastRound !== 'number' || draw.lastRound !== curRace.round) {
-      laps = curLogged?.laps || curRace.laps;
-      draw.lastRound = curRace.round;
-    }
-    const mapSrc = curRace.map || TRACK_MAPS[curRace.round] || null;
-    const dist = (laps * curRace.lapKm).toFixed(1);
+    const mapSrc = TRACK_MAPS[race.round] || race.map || null;
+    const dist = (laps * race.lapKm).toFixed(1);
     root.innerHTML = `
       ${ribbonHTML()}
       ${topbarHTML(true)}
       <div class="hero">
-        <div class="eyebrow">Season 1 · Round ${curRace.round} of 22</div>
+        <div class="eyebrow">Season 1 · Round ${race.round}</div>
         <h1 class="page" style="font-size:clamp(2rem,6vw,3.4rem)">RACE WEEKEND</h1>
-        <div class="circuit"><span style="font-size:1.25rem;vertical-align:-2px;margin-right:8px">${curRace.flag}</span>${curRace.circuit.toUpperCase()} — ${curRace.gp.toUpperCase()}</div>
-        <div style="margin:12px auto 0;max-width:420px;display:flex;align-items:center;justify-content:center;gap:10px">
-          <label for="rw-round-sel" style="font-family:'F1DisplayBold',sans-serif;font-size:.7rem;letter-spacing:.12em;color:var(--dim)">CIRCUIT / ROUND</label>
-          <select id="rw-round-sel" style="flex:1;max-width:300px">
-            ${CALENDAR.map(r => `<option value="${r.round}" ${r.round === curRace.round ? 'selected' : ''}>R${r.round} · ${r.flag} ${r.gp} (${r.circuit})${s.results[r.round] ? ' ✓' : ''}</option>`).join('')}
-          </select>
-        </div>
-        ${mapSrc ? `<div class="trackframe"><img src="${mapSrc}" alt="${curRace.circuit} — official F1 track map" referrerpolicy="no-referrer"></div>` : ''}
+        <div class="circuit"><span style="font-size:1.25rem;vertical-align:-2px;margin-right:8px">${race.flag}</span>${race.circuit.toUpperCase()}</div>
+        ${mapSrc ? `<div class="trackframe"><img src="${mapSrc}" alt="${race.circuit} — official F1 track map" referrerpolicy="no-referrer"></div>` : ''}
         <div class="chips">
-          <span class="mchip"><b>${rangeLabel(curRace)}</b></span>
-          <span class="mchip">Lap <b>${curRace.lapKm.toFixed(3)}</b> km</span>
+          <span class="mchip"><b>${rangeLabel(race)}</b></span>
+          <span class="mchip">Lap <b>${race.lapKm.toFixed(3)}</b> km</span>
           <span class="mchip"><b id="chip-laps">${laps}</b> laps · <b id="chip-dist">${dist}</b> km</span>
         </div>
       </div>
       <div class="panel">
-        <h2>THE WEEKEND — ${curRace.gp.toUpperCase()}</h2>
+        <h2>THE WEEKEND — ${race.gp.toUpperCase()}</h2>
         <div class="lapsrow">
           <span class="lk">Race length</span>
           <div class="stepper"><button id="lap-minus" aria-label="Fewer laps">−</button><span class="lv" id="lap-val">${laps} laps</span><button id="lap-plus" aria-label="More laps">+</button></div>
           <span class="ld">Race distance <b id="lap-dist">${dist} km</b></span>
         </div>
         <div class="objectives"><b>WEEKEND OBJECTIVES</b> — drawn at random each weekend (pool of 10–15, 2–3 shown). The objectives system lands in a later build step.</div>
-        ${curLogged ? `<div class="banner" style="margin-top:16px"><div class="bt">Result already logged</div>
-          <div class="bs">Car #${d1.no}: ${curLogged.entries[d1.id] ? 'P' + curLogged.entries[d1.id] : 'DNF'} · Car #${d2.no}: ${curLogged.entries[d2.id] ? 'P' + curLogged.entries[d2.id] : 'DNF'} · ${curLogged.laps} laps · ${curLogged.conditions}. Logging again replaces it.</div></div>` : ''}
+        ${logged ? `<div class="banner" style="margin-top:16px"><div class="bt">Result already logged</div>
+          <div class="bs">Car #${d1.no}: ${logged.entries[d1.id] ? 'P' + logged.entries[d1.id] : 'DNF'} · Car #${d2.no}: ${logged.entries[d2.id] ? 'P' + logged.entries[d2.id] : 'DNF'} · ${logged.laps} laps · ${logged.conditions}. Logging again replaces it.</div></div>` : ''}
         <div class="logform">
-          <div class="fld"><label>Car #${d1.no} ${d1.last} — finish</label><select id="log-a">${posOptions(curLogged?.entries[d1.id])}</select></div>
-          <div class="fld"><label>Car #${d2.no} ${d2.last} — finish</label><select id="log-b">${posOptions(curLogged?.entries[d2.id])}</select></div>
+          <div class="fld"><label>Car #${d1.no} ${d1.last} — finish</label><select id="log-a">${posOptions(logged?.entries[d1.id])}</select></div>
+          <div class="fld"><label>Car #${d2.no} ${d2.last} — finish</label><select id="log-b">${posOptions(logged?.entries[d2.id])}</select></div>
           <div class="fld"><label>Actual conditions</label><select id="log-cond">
-            <option ${curLogged?.conditions === 'Dry' ? 'selected' : ''}>Dry</option>
-            <option ${curLogged?.conditions === 'Less wet — inters' ? 'selected' : ''}>Less wet — inters</option>
-            <option ${curLogged?.conditions === 'Full wet' ? 'selected' : ''}>Full wet</option></select></div>
+            <option ${logged?.conditions === 'Dry' ? 'selected' : ''}>Dry</option>
+            <option ${logged?.conditions === 'Less wet — inters' ? 'selected' : ''}>Less wet — inters</option>
+            <option ${logged?.conditions === 'Full wet' ? 'selected' : ''}>Full wet</option></select></div>
           <button class="btn primary small" id="log-save" style="padding:12px 22px">LOG RESULTS</button>
         </div>
         ${msg ? `<div class="banner blue" style="margin-top:16px"><div class="bt">Logged</div><div class="bs">${msg}</div></div>` : ''}
         <div class="foot">Run the weekend in Monoposto first, then log what actually happened. Full-grid result entry arrives with the standings build-out; the economy reads your two cars.</div>
       </div>`;
-    const rSel = document.getElementById('rw-round-sel');
-    if (rSel) {
-      rSel.onchange = e => {
-        selectedRound = +e.target.value;
-        draw();
-      };
-    }
     const sync = () => {
-      const d = (laps * curRace.lapKm).toFixed(1);
+      const d = (laps * race.lapKm).toFixed(1);
       document.getElementById('lap-val').textContent = laps + ' laps';
       document.getElementById('lap-dist').textContent = d + ' km';
       document.getElementById('chip-laps').textContent = laps;
       document.getElementById('chip-dist').textContent = d;
     };
     document.getElementById('lap-minus').onclick = () => { laps = Math.max(5, laps - 1); sync(); };
-    document.getElementById('lap-plus').onclick = () => { laps = Math.min(curRace.laps, laps + 1); sync(); };
+    document.getElementById('lap-plus').onclick = () => { laps = Math.min(race.laps, laps + 1); sync(); };
     document.getElementById('log-save').onclick = () => {
       const va = document.getElementById('log-a').value, vb = document.getElementById('log-b').value;
       const entries = { [d1.id]: va ? +va : null, [d2.id]: vb ? +vb : null };
       const cond = document.getElementById('log-cond').value;
-      const { rpGained } = logResult(s, curRace.round, entries, cond, laps);
+      const { rpGained } = logResult(s, race.round, entries, cond, laps);
       save();
-      draw(`Car #${d1.no}: ${entries[d1.id] ? 'P' + entries[d1.id] : 'DNF'} · Car #${d2.no}: ${entries[d2.id] ? 'P' + entries[d2.id] : 'DNF'} · ${laps} laps (${(laps * curRace.lapKm).toFixed(1)} km) · ${cond} · +${rpGained} RP race income.`);
+      draw(`Car #${d1.no}: ${entries[d1.id] ? 'P' + entries[d1.id] : 'DNF'} · Car #${d2.no}: ${entries[d2.id] ? 'P' + entries[d2.id] : 'DNF'} · ${laps} laps (${(laps * race.lapKm).toFixed(1)} km) · ${cond} · +${rpGained} RP race income.`);
     };
   };
   draw();

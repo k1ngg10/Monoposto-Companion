@@ -1,9 +1,9 @@
 // STORE — the live save state. Single source of truth for the career.
 // Persists to localStorage; JSON export/import for backup (SPEC §1).
-import { teamById, tierOf, ENTRY_TIERS, driversOfTeam, driverById } from '../data/teamsAndDrivers.js?v=20261022b';
-import { computeSponsorEconomy, puContractCost, puById } from '../data/sponsorsAndEngines.js?v=20261022b';
-import { initialFacilityNodes, syncLegacyFacilities, allFacilityNodes } from '../data/facilitiesCatalog.js?v=20261022b';
-import { initialPartsState, partById } from '../data/partsCatalog.js?v=20261022b';
+import { teamById, tierOf, ENTRY_TIERS, driversOfTeam, driverById } from '../data/teamsAndDrivers.js?v=20261022h';
+import { computeSponsorEconomy, puContractCost, puById, sponsorsOfTeam } from '../data/sponsorsAndEngines.js?v=20261022h';
+import { initialFacilityNodes, syncLegacyFacilities, allFacilityNodes } from '../data/facilitiesCatalog.js?v=20261022h';
+import { initialPartsState, partById } from '../data/partsCatalog.js?v=20261022h';
 
 const KEY = 'monoposto-companion-save-v1';
 let memoryFallback = null;
@@ -23,6 +23,19 @@ export const FACILITY_BASELINE_PRESETS = {
 function migrate(s) {
   if (!s || typeof s !== 'object' || !s.teamId) return s;
   let dirty = false;
+  const board = sponsorsOfTeam(s.teamId);
+  if (board.length) {
+    const validIds = (s.activeSponsors || []).filter(id => board.some(sp => sp.id === id));
+    if (validIds.length < 2) {
+      const nextIds = [...validIds];
+      for (const sp of board) {
+        if (nextIds.length >= 2) break;
+        if (!nextIds.includes(sp.id)) nextIds.push(sp.id);
+      }
+      s.activeSponsors = nextIds;
+      dirty = true;
+    }
+  }
   if (typeof s.puCost === 'undefined') {
     const team = teamById(s.teamId);
     const pu = puById(s.puId || team?.pu);

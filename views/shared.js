@@ -1,6 +1,6 @@
 // Shared UI fragments — the HUD and top bar every screen uses.
 // Values always come from the live save; nothing is typed in by hand.
-import { getState, playerTeam } from '../engine/store.js?v=20261022b';
+import { getState, playerTeam } from '../engine/store.js?v=20261022h';
 
 export const fmt$ = v => '$' + (+v).toFixed(2) + 'M';
 

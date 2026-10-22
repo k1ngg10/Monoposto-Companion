@@ -4,9 +4,9 @@
 // - Department Upgrade Inspector: Separate component cards per department + Left Chamfered Box + Right Translucent Detail Box
 //   + Horizontal Completion Timeline Strip + Bottom Action Box.
 
-import { DEPARTMENTS, APPROACHES, partById } from '../data/partsCatalog.js?v=20261022b';
-import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022b';
-import { engineeringPhase, hasDualBuild, maxResearchSlots, maxManufactureSlots } from '../data/facilitiesCatalog.js?v=20261022b';
+import { DEPARTMENTS, APPROACHES, partById } from '../data/partsCatalog.js?v=20261022h';
+import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022h';
+import { engineeringPhase, hasDualBuild, maxResearchSlots, maxManufactureSlots } from '../data/facilitiesCatalog.js?v=20261022h';
 import {
   getState,
   save,
@@ -14,17 +14,17 @@ import {
   monopostoPower,
   driverPriorityStatus,
   unmanufacturedBlueprints
-} from '../engine/store.js?v=20261022b';
+} from '../engine/store.js?v=20261022h';
 import {
   researchQuote,
   startResearch,
   manufactureQuote,
   startManufacture,
   debutRound
-} from '../engine/rdEngine.js?v=20261022b';
-import { prettyDate, addDays } from '../engine/timeEngine.js?v=20261022b';
-import { vehiclePerformanceComparisonHTML } from './DevGraphView.js?v=20261022b';
-import { topbarHTML, fmt$ } from './shared.js?v=20261022b';
+} from '../engine/rdEngine.js?v=20261022h';
+import { prettyDate, addDays } from '../engine/timeEngine.js?v=20261022h';
+import { vehiclePerformanceComparisonHTML } from './DevGraphView.js?v=20261022h';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022h';
 
 let approach = 'standard';
 let activeSubTab = 'performance'; // 'performance' | 'inprogress' | 'history'

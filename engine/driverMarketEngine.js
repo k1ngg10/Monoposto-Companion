@@ -2,8 +2,8 @@
 // NEVER a random lottery. This evaluates the rules and reports who is at
 // risk and why; contract windows open at R12 (Spa) and R22 (Abu Dhabi).
 // ("Silly season" is not a term we use — it's the contract window.)
-import { DRIVERS, teamById, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022j';
-import { driverStandings } from './raceSimulator.js?v=20261022j';
+import { DRIVERS, teamById, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022k';
+import { driverStandings } from './raceSimulator.js?v=20261022k';
 
 export function contractWindowReport(state) {
   const standings = driverStandings(state);

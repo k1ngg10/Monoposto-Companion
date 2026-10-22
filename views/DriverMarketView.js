@@ -1,11 +1,11 @@
 // DRIVER MARKET — the contract window (SPEC §6, Pillar 5).
 // The 3-tier prestige algorithm, evaluated openly: retirement checks,
 // the 35% teammate rule, and the prestige ladder. Never a random lottery.
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022j';
-import { getState } from '../engine/store.js?v=20261022j';
-import { contractWindowReport } from '../engine/driverMarketEngine.js?v=20261022j';
-import { driverStandings } from '../engine/raceSimulator.js?v=20261022j';
-import { topbarHTML } from './shared.js?v=20261022j';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022k';
+import { getState } from '../engine/store.js?v=20261022k';
+import { contractWindowReport } from '../engine/driverMarketEngine.js?v=20261022k';
+import { driverStandings } from '../engine/raceSimulator.js?v=20261022k';
+import { topbarHTML } from './shared.js?v=20261022k';
 
 export function render(root) {
   const s = getState();

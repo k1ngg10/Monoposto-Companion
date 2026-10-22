@@ -9,10 +9,10 @@ import {
   maxResearchSlots,
   maxManufactureSlots,
   hasDualBuild
-} from '../data/facilitiesCatalog.js?v=20261022j';
-import { getState } from '../engine/store.js?v=20261022j';
-import { queueFacility, prettyDate } from '../engine/timeEngine.js?v=20261022j';
-import { topbarHTML, fmt$ } from './shared.js?v=20261022j';
+} from '../data/facilitiesCatalog.js?v=20261022k';
+import { getState } from '../engine/store.js?v=20261022k';
+import { queueFacility, prettyDate } from '../engine/timeEngine.js?v=20261022k';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022k';
 
 let activeBranch = 'all';
 let msg = '', msgErr = false;

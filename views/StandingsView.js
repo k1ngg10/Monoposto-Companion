@@ -1,8 +1,8 @@
 // STANDINGS — broadcast timing-tower tables, computed from logged results.
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022j';
-import { getState } from '../engine/store.js?v=20261022j';
-import { driverStandings, constructorStandings } from '../engine/raceSimulator.js?v=20261022j';
-import { topbarHTML } from './shared.js?v=20261022j';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022k';
+import { getState } from '../engine/store.js?v=20261022k';
+import { driverStandings, constructorStandings } from '../engine/raceSimulator.js?v=20261022k';
+import { topbarHTML } from './shared.js?v=20261022k';
 
 export function render(root) {
   const s = getState();

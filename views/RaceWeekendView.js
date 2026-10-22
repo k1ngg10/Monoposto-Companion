@@ -1,13 +1,13 @@
 // RACE WEEKEND — renders entirely from the calendar row + the save.
 // Race length is selectable; distance = laps × lap length, computed live.
 // Results are logged AFTER the game is played — the app never dictates them.
-import { CALENDAR } from '../data/calendar2026.js?v=20261022j';
-import { TRACK_MAPS } from '../data/trackMaps.js?v=20261022j';
-import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022j';
-import { getState, save } from '../engine/store.js?v=20261022j';
-import { logResult } from '../engine/raceSimulator.js?v=20261022j';
-import { prettyDate } from '../engine/timeEngine.js?v=20261022j';
-import { topbarHTML } from './shared.js?v=20261022j';
+import { CALENDAR } from '../data/calendar2026.js?v=20261022k';
+import { TRACK_MAPS } from '../data/trackMaps.js?v=20261022k';
+import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022k';
+import { getState, save } from '../engine/store.js?v=20261022k';
+import { logResult } from '../engine/raceSimulator.js?v=20261022k';
+import { prettyDate } from '../engine/timeEngine.js?v=20261022k';
+import { topbarHTML } from './shared.js?v=20261022k';
 
 function rangeLabel(race) {
   const sat = prettyDate(race.sat), sun = prettyDate(race.sun);
@@ -44,7 +44,7 @@ export function render(root) {
   let laps = logged?.laps || race.laps;
 
   const draw = msg => {
-    const mapSrc = TRACK_MAPS[race.round] || race.map || null;
+    const mapSrc = race.map || TRACK_MAPS[race.round] || null;
     const dist = (laps * race.lapKm).toFixed(1);
     root.innerHTML = `
       ${ribbonHTML()}
@@ -53,7 +53,7 @@ export function render(root) {
         <div class="eyebrow">Season 1 · Round ${race.round}</div>
         <h1 class="page" style="font-size:clamp(2rem,6vw,3.4rem)">RACE WEEKEND</h1>
         <div class="circuit"><span style="font-size:1.25rem;vertical-align:-2px;margin-right:8px">${race.flag}</span>${race.circuit.toUpperCase()}</div>
-        ${mapSrc ? `<div class="trackframe"><img src="${mapSrc}" alt="${race.circuit} — official F1 track map" referrerpolicy="no-referrer"></div>` : ''}
+        ${mapSrc ? `<div class="trackframe"><img id="rw-track-map" src="${mapSrc}" alt="${race.circuit} — official F1 track map" loading="eager" decoding="async"></div>` : ''}
         <div class="chips">
           <span class="mchip"><b>${rangeLabel(race)}</b></span>
           <span class="mchip">Lap <b>${race.lapKm.toFixed(3)}</b> km</span>
@@ -82,6 +82,20 @@ export function render(root) {
         ${msg ? `<div class="banner blue" style="margin-top:16px"><div class="bt">Logged</div><div class="bs">${msg}</div></div>` : ''}
         <div class="foot">Run the weekend in Monoposto first, then log what actually happened. Full-grid result entry arrives with the standings build-out; the economy reads your two cars.</div>
       </div>`;
+
+    const mapImg = document.getElementById('rw-track-map');
+    if (mapImg && mapSrc && mapSrc.startsWith('http')) {
+      let retries = 0;
+      mapImg.onerror = () => {
+        if (retries < 2) {
+          retries += 1;
+          setTimeout(() => {
+            mapImg.src = `${mapSrc}${mapSrc.includes('?') ? '&' : '?'}r=${retries}`;
+          }, 250 * retries);
+        }
+      };
+    }
+
     const sync = () => {
       const d = (laps * race.lapKm).toFixed(1);
       document.getElementById('lap-val').textContent = laps + ' laps';

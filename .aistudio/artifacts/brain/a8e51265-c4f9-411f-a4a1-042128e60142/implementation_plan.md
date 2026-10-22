@@ -1,137 +1,179 @@
-# Monoposto Companion — Official Sponsor Logos, Circuit Maps, F1 R&D Hub & Baseline Performance Graph
+# Monoposto Companion — R&D Subcategory Browser, Develop Upgrade Page, F1 Advance Reticle & Delete Confirmation Plan
 
-This update replaces all custom-generated sponsor badges with the exact 4-sponsor rosters and official brand logos from your reference list, adds the 16 missing/updated circuit maps (including Bahrain), redesigns the R&D experience into the authentic F1 2×2 Department Hub + two-panel Upgrade Inspector, updates the Vehicle Performance Comparison graph with the vertical starting-baseline line, and fixes the Constructors' Championship row alignment for positions 10–12.
-
----
+This plan adds a confirmation dialog before deleting a championship in the Settings menu, replicates the exact F1 game advancing circle/reticle from your reference video (`VID_20261022_202944_d5e52829.mp4`), and upgrades the R&D system into the three-stage F1 game workflow shown in your reference screenshots: **2×2 Department Hub** → **Department Subcategory Browser (`SELECT A PART TO RESEARCH`)** → **Dedicated Part Detail Screen (`DEVELOP UPGRADE`)**.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **Synthesized Requirements from Reference Screenshots & Markdown**:
-> - **R&D 2×2 Hub & Department Upgrade Inspector**: Clicking any of the 4 department tiles (`AERODYNAMICS`, `CHASSIS`, `POWERTRAIN`, `DURABILITY`) opens that department's dedicated **Research / Upgrade Inspector** screen where each part is listed separately (never mixing separate components) and rendered with the **left chamfered upgrade card** + **right translucent detail card** + **completion timeline strip** + **bottom action box** (with zero emojis).
-> - **Vehicle Performance Comparison Graph**: Uses a vertical white baseline marker representing the season-start base performance (`Car Power 4.00`), where the lowest-speed starting cars (`Haas`, `Cadillac`, `BMW`) touch the baseline on Day 1 and extend past it to the right as upgrades are fitted.
-> - **Official Sponsor Rosters & Logos**: Uses the exact 4 sponsors and logo URLs per team from your uploaded `Sponsors-for-site.md` (while keeping `Shell` and `General Motors` existing vector logos as instructed, and retaining `Apple Porsche`'s 4 official SVGs: `Apple Music`, `TAG Heuer`, `BOSS`, `Mobil 1`).
-> - **Constructors' Championship List Alignment (Rows 10–12)**: Fixes the horizontal shift on 2-digit position numbers (`10`, `11`, `12`) so all 12 rows align on the same vertical grid as rows `1–9`.
+> All choices confirmed in our clarification step and your reference video are locked in below:
+> - **Confirmed Decision 1 (Department Subcategories & Parts)**: Group the existing parts into authentic, domain-specific F1 subcategories for each of the 4 departments and include the Chassis parts shown in your screenshots (`Weight Redistribution` and `Weight Reduction`) while preserving all core Spec 1/2/3 ladders and starter preset compatibility.
+> - **Confirmed Decision 2 (Locked Upgrades Display)**: Upgrades locked behind an unresearched prerequisite render as dark **`UNKNOWN UPGRADE`** cards in the subcategory row and as **`[?]`** nodes in the compact subcategory progress strips below until their prerequisite is researched.
+> - **Confirmed Decision 3 (Delete Championship Confirmation)**: Clicking **Delete championship…** in the header Settings menu opens an in-app confirmation modal with **Cancel** and **Delete Championship** buttons before wiping the save.
+> - **Confirmed Decision 4 (Exact F1 Video Advancing Circle / Reticle)**: Replicate the exact advancing circle from your video (`VID_20261022_202944_d5e52829.mp4`): a crisp dark inner circle with a clean white circular ring outline inside a thin dark outer ring track, surrounded by an outer green gradient arc wedge that sweeps smoothly 360° clockwise once per simulated day (incrementing the date each time the green sweep completes a revolution at 12 o'clock), with zero oval distortion or weird borders.
 
 ---
 
 ## 1. Overview & Core Concept
 
 - **What It Does**:
-  1. **Official Team Sponsor Boards & Logos**: Updates all 12 teams' 4-sponsor boards to match your exact list and official brand logo assets (removing all self-made SVG text badges), while preserving the inverse **Day 1 Signing Base vs. Weekly Cashflow** trade-offs across the 4 slots.
-  2. **Complete 22-Round Track Map Coverage**: Integrates all 16 circuit `.webp` maps (`Bahrain`, `Saudi Arabia`, `Miami`, `Canada`, `Catalunya`, `Austria`, `Silverstone`, `Belgium`, `Hungary`, `Netherlands`, `Italy`, `Singapore`, `COTA`, `Brazil`, `Las Vegas`, and `Abu Dhabi`) so every race weekend displays the proper track layout.
-  3. **Authentic F1 R&D Hub & Upgrade Inspector**: Replaces the flat table list with the F1 game's `Performance | R&D in Progress | Progress History` sub-navigation, the 2×2 color-coded Department Grid (`Aerodynamics`, `Chassis`, `Powertrain`, `Durability`), and the two-box Department Upgrade Inspector upon entering a department.
-  4. **Baseline Vehicle Performance Comparison**: Implements the F1-style horizontal comparison chart with the vertical starting baseline line, available both alongside the R&D Hub and on the dedicated Dev Graph view.
-  5. **Constructors' Standings Alignment Fix**: Gives position numerals a fixed tabular column width so positions `10`, `11`, and `12` line up cleanly with positions `1–9`.
+  1. Protects the user's career save from accidental deletion with a confirmation dialog when clicking **Delete championship…** in Settings.
+  2. Rebuilds the HQ advancing circle (`#ring`) to match your reference video: an outer green glowing sweep wedge with a fading tail rotates smoothly 360° clockwise around the white-ringed dark center circle, advancing the calendar by 1 day on each full 12-o'clock revolution while events slide up the vertical timeline line.
+  3. Splits R&D navigation into three distinct screens matching the F1 game:
+     - **Screen 1 — 2×2 Department Overview Hub**: Select from `AERODYNAMICS`, `CHASSIS`, `POWERTRAIN`, or `DURABILITY`.
+     - **Screen 2 — Subcategory Browser (`SELECT A PART TO RESEARCH`)**: Browse a department's domain-specific subcategories via the left vertical subcategory spine (`^` / `v` switcher) and lower progress strips (`[✓]-[✓]-[ ]-[?]`), showing a horizontal row of chamfered upgrade cards for the active subcategory.
+     - **Screen 3 — Dedicated Part Detail Screen (`DEVELOP UPGRADE`)**: Clicking a part card opens a separate detail screen with the chamfered card + translucent specification box, horizontal calendar completion timeline, `UNLOCKS:` downstream preview, `VEHICLE PERFORMANCE COMPARISON` chart, and research/manufacture action controls.
+- **Target Audience / Persona**: Monoposto career players who want an authentic F1 R&D tree browser, the exact F1 calendar-advancing sweep reticle, and safeguard against accidental save deletion.
+- **Key Value**: Replicates the exact F1 game advancing sweep animation without weird borders, gives each department realistic F1 engineering subcategories without mixing unrelated parts together, and keeps part inspection on its own clean, dedicated page.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### A. F1 R&D Hub (2×2 Department Grid + Sub-Tabs)
+### Key User Flows
 
-![F1 R&D 2x2 Department Hub Reference](/public/assets/aistudio/Screenshot_2026-10-22-16-37-27-038_com.miui.gallery-edit_e9e0bc78.jpg)
+1. **Settings → Delete Championship Confirmation Modal**:
+   - Clicking the gear icon (`⚙`) → **Delete championship…** opens a sleek dark motorsport confirmation modal over the viewport:
+     - **Heading**: `DELETE CHAMPIONSHIP?`
+     - **Body**: Explains that deleting the current career permanently erases your team progress, R&D tree, and race results (suggesting JSON export first if desired).
+     - **Actions**: **CANCEL** (closes modal safely) and **CONFIRM DELETE** (wipes the save and routes to Championship Creation).
 
-- **Sub-Navigation Bar**: Clean F1-style segmented bar directly under the main navigation with three views (no controller `L2`/`R2` button prompts):
-  - **Performance**: Displays the 2×2 Department Grid on the left and the **Vehicle Performance Comparison** chart on the right.
-  - **R&D in Progress**: Displays active Step A (Research) and Step B (Manufacturing) tasks with completion dates, target debut Grand Prix, and Car #1 / Car #2 build controls for researched blueprints.
-  - **Progress History**: Displays a chronological log of completed research blueprints, D20 correlation outcomes, and fitted car upgrades.
-- **2×2 Department Tiles**:
-  - **AERODYNAMICS**: Deep cobalt-blue gradient (`#005a9c` → `#002642`), bold white uppercase header, bottom-left part counter (`X/14`), and bottom-right circular progress ring.
-  - **CHASSIS**: Olive/forest technical green gradient (`#2e3a1f` → `#161c0f`), bottom-left counter (`X/11`), and circular progress ring.
-  - **POWERTRAIN**: Deep plum/magenta gradient (`#3d123a` → `#1c081b`), bottom-left counter (`X/9`), and circular progress ring.
-  - **DURABILITY**: Amber/ochre gradient (`#4a3e12` → `#221c08`), bottom-left counter (`X/6`), and circular progress ring.
+2. **Exact F1 Video Advancing Circle (`ADVANCE` / `STOP ADVANCING`)**:
+   - **Why It Looked Weird Before**: `.ring` (`38px × 38px`) was placed inside `.node .dot` (`34px × 34px`), squishing the circle into a distorted oval and causing the vertical timeline line and inner background to clip unevenly.
+   - **Exact Video Design (`VID_20261022_202944_d5e52829.mp4`)**:
+     - **Concentric Geometry (Perfect 1:1 Circle, No Weird Borders)**:
+       - **Inner Core**: A dark circular disc (`#0b0d10`) with a crisp white circular ring border (`stroke: #ffffff`) centered on the vertical timeline axis, displaying the clean control glyph inside.
+       - **Outer Ring Track**: A subtle thin dark-grey concentric circle around the inner core, with the subtle horizontal dashed tick on the left and the vertical timeline line extending strictly downward from the bottom of the outer ring (never cutting behind or through the circle).
+       - **Clockwise Green Sweep Wedge (Active while Advancing)**: A thick outer ring band (`conic-gradient` mask / SVG sector outside the white inner ring) featuring a bright neon-green leading edge (`#24e058`) and a smooth fading green tail (~100° arc) that rotates smoothly 360° clockwise (`requestAnimationFrame` / linear angle `0deg → 360deg`).
+       - **1 Revolution = 1 Day Sync**: Each full 360° clockwise sweep from 12 o'clock back to 12 o'clock advances the date by 1 day (e.g., `19th February` → `20th February`) while upcoming timeline items slide smoothly upward toward the circle.
 
-### B. Department Drill-Down — "RESEARCH UPGRADE" Inspector
+3. **R&D Screen 1 → Screen 2 (`SELECT A PART TO RESEARCH` — Subcategory Browser)**:
+   - Clicking any department in the 2×2 grid opens **`SELECT A PART TO RESEARCH`** for that department:
+     - **Top Bar**: Department switcher tabs (`AERODYNAMICS`, `CHASSIS`, `POWERTRAIN`, `DURABILITY`), a **Back to R&D Hub** button, and the right-hand KPI header (`TOTAL UPGRADES`, `FAILURE CHANCE`, `SIMULTANEOUS UPGRADES`).
+     - **Left Vertical Subcategory Spine**: A tall pill-shaped vertical switcher on the left edge of the card row with Up (`^`) and Down (`v`) buttons, the subcategory completion counter (e.g., `4/6`), and rotated uppercase title (e.g., `WEIGHT REDISTRIBUTION` or `WEIGHT REDUCTION`).
+     - **Active Subcategory Part Row**: A horizontal row of chamfered upgrade cards belonging strictly to the selected subcategory:
+       - **Completed / Fitted Cards**: Filled with the department's translucent accent gradient, top-right checkmark badge, part name, department label, and bottom status pill (`BOT | Completed`, `CAR 1`, `CAR 2`, or `BLUEPRINT READY`).
+       - **Available Cards**: Dark chamfered card with the RP cost in the top-right corner (showing discounted RP + struck-through base RP when facility discounts apply), part title at bottom-left, and `Available` status pill beneath.
+       - **Locked Downstream Cards**: Dark chamfered card titled **`UNKNOWN UPGRADE`** until its prerequisite part is researched.
+     - **Lower Compact Subcategory Progress Strips**: Directly beneath the card row, each of the other subcategories in the department is rendered as a clickable horizontal strip showing its ratio badge (e.g., `6/8`, `4/5`) followed by connected square nodes:
+       - `[✓]` (colored box with checkmark) for researched parts,
+       - `[ ]` (outlined dark box) for available unresearched parts,
+       - `[?]` (dark box with `?`) for locked downstream parts.
+       - Clicking any lower strip (or clicking `^` / `v` on the vertical spine) immediately switches the active subcategory row.
+     - **Bottom-Right Completion Preview**: Displays `COMPLETED` or `ESTIMATED COMPLETION` date range and the player team's progress bar.
 
-![F1 Research Upgrade Inspector Reference](/public/assets/aistudio/Screenshot_2026-10-20-20-51-56-179_app.morphe.android.youtube-edit_50da2823.jpg)
+4. **R&D Screen 2 → Screen 3 (`DEVELOP UPGRADE` — Dedicated Part Detail Page)**:
+   - Clicking a part card in Screen 2 navigates to the separate **`DEVELOP UPGRADE`** screen:
+     - **Left Column**:
+       - **Two-Box Upgrade Inspector**: The chamfered part card on the left + the translucent detail box immediately to its right (Part Name, `Major/Minor - <Subcategory Name>`, technical description, RP cost, research/build days, and failure/correlation percentage).
+       - **Horizontal Calendar Completion Timeline**: Displays the current date on the left, upcoming Grand Prix flags and dates along the horizontal line, and the `COMPLETE` date marker.
+       - **Bottom Action Boxes**: Research approach cards (`Standard`, `Aggressive`, `Conservative`) when researching, or Car-Specific Manufacturing cards (`Car #1`, `Car #2`, `Both Cars`) when the blueprint is ready, plus a **Back** button returning to Screen 2 (`SELECT A PART TO RESEARCH`).
+     - **Right Column**:
+       - **`UNLOCKS:` Panel**: Lists the downstream part(s) unlocked by researching this upgrade (or states `Final tier upgrade in this branch` if terminal).
+       - **`VEHICLE PERFORMANCE COMPARISON`**: The 12-team horizontal bar chart with the dashed vertical baseline line at `4.00` and the player team's green projected gain bar.
 
-- **Entering a Department**: Clicking any of the 4 department tiles opens that department's **Upgrade Inspector**.
-- **Separate Part Selector Rail**: All distinct parts within that department (e.g., all 11 Chassis parts: `Brake Calipers`, `Plank Mounts`, `Engine Cover (Distribution)`, `Brake Disc Width`, `Floor Stay Positions`, `Roll Dampers`, `Brake Pad Material`, `Weight Reduction I`, `Weight Redistribution`, `Rear Floor Undertray`, `Lightweight Monocoque`) are listed as separate selectable component tiles organized by Phase 1, Phase 2, and Phase 3—never lumping different parts together.
-- **Two-Box Upgrade Inspector Layout**:
-  1. **Left Chamfered Upgrade Box**: White-bordered card with an angled top-left chamfer (`clip-path`), dark department-tinted interior, bold uppercase part name (`ENGINE COVER (DISTRIBUTION)`), department label (`CHASSIS`), and current Spec/Car fitment status. No emojis or artificial drawings.
-  2. **Right Translucent Detail Box**: Frosted dark-slate glass card (`rgba(36, 39, 46, 0.86)`) displaying:
-     - **Header**: Uppercase Part Name (`ENGINE COVER (DISTRIBUTION)`)
-     - **Subtitle**: Tier & Engineering Category (e.g., `Minor - Phase 1 Chassis · +16 DP (+8 DP/car)`)
-     - **Divider Line**
-     - **Technical Description**: Full engineering explanation (`part.blurb`) plus prerequisite and Car #1 / Car #2 fitment status.
-     - **Divider Line**
-     - **Cost & Duration Row**: Resource Point cost (`650 RP`) on the left and duration (`13 DAYS` with a clean geometric SVG stopwatch icon) on the right.
-  3. **Horizontal Completion Timeline Strip**: Connects the **Start Date** node on the left to the **COMPLETE** date marker in the middle, with a dashed projection line extending to the target **GRAND PRIX** round and date on the right.
-  4. **Bottom Action Box**: Framed translucent action panel at the bottom left with the primary `Start Research` button (and Step B `Manufacture for Car #1 / Car #2 / Both Cars` buttons once the blueprint passes correlation).
+### Domain-Specific Subcategories by Department
 
-### C. Vehicle Performance Comparison (Baseline Dev Graph)
+Every department has its own authentic F1 engineering subcategories (no shared or repeated subcategory names across departments):
 
-![Vehicle Performance Comparison Reference](/public/assets/aistudio/Screenshot_2026-10-22-16-37-44-048_com.miui.gallery-edit_1bdbbf0c.jpg)
-
-- **Vertical Baseline Line**:
-  - Each of the 12 constructors has a dark horizontal bar track.
-  - A crisp **vertical white baseline line** cuts across all 12 rows at the season's minimum base performance (`Car Power 4.00`, placed at `32%` of the bar track width).
-  - Teams starting at `Car Power 4.00` (`Haas`, `Cadillac`, `BMW`) fill up to and touch the vertical white line on Day 1.
-  - Faster starting teams (`5.00` to `7.00`) and teams that complete R&D upgrades extend to the right of the vertical white line as their true performance increases across the season.
-  - Player's team bar is highlighted in electric blue / team color with bold uppercase team name on the right, while AI teams render in neutral silver-grey bars with their vertical team-color stripe (`|`) next to their name.
-
-### D. Constructors' Championship Row Alignment (Rows 10–12)
-
-- **Focused Selector Fix**: In `.mx-ctor-row` (`ChampionshipMatrixView.js` & `css/components.css`), the leading position `<span>` (`1` through `12`) receives a fixed `width: 24px; min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; flex: none;` so that 2-digit rows (`10`, `11`, `12`) align their team logo and constructor name identically with 1-digit rows (`1–9`).
+- **CHASSIS (3 Subcategories)**:
+  1. `Weight Redistribution`: Plank Construction, Intercooler Positioning, Hydraulics, Floor Undertray (Distribution), Energy Store Cells Positioning, Fuel Tank Positioning.
+  2. `Weight Reduction`: Nose Structure, Lightweight Energy Store Cells, Engine Cover, Lightweight Wheel Rims, Floor Undertray, Lightweight Monocoque.
+  3. `Braking & Suspension`: Brake Calipers, Brake Disc Width, Brake Pad Material, Roll Dampers, Rear Floor Undertray.
+- **AERODYNAMICS (3 Subcategories)**:
+  1. `Front Downforce`: Front Wing (Specs 1–3), Wing Mirrors, Front Wing Gurney Flap, Front Wing Adjuster Bracket, Front Wing Endplates.
+  2. `Underbody & Airflow`: Underfloor (Specs 1–3), Sidepods (Specs 1–3), Sidepod Undercut & Inlets, Floor Stiffening Stays, Floor Edge Winglets, Venturi Underfloor Channels.
+  3. `Rear Downforce & Drag`: Rear Wing (Specs 1–3), Rear Downforce Beam Wing, Low-Drag Active Aero Spec.
+- **POWERTRAIN (3 Subcategories)**:
+  1. `Internal Combustion (ICE)`: Air Filter, Spark Plugs, Piston Rings, Pistons.
+  2. `Energy Recovery (ERS / MGU-K)`: 2026 Hybrid PU & MGU-K (Specs 1–3), Stators, ECU.
+  3. `Turbo & Fuel Systems`: Wastegate Actuator, Fuel Injection.
+- **DURABILITY (2 Subcategories)**:
+  1. `Power Unit Reliability`: ES Cooling, ICE Durability, MGU-K & Turbo Bearings.
+  2. `Gearbox & Control Systems`: General Wear Parts, Control Electronics, Gearbox Internals.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Resolving Official Sponsor Logos & Contrasting Wells**
-  - *Chosen Approach*: Map every team's 4 sponsors to the exact brands and URLs in `Sponsors-for-site.md` (resolving Wikipedia `/wiki/File:...` links to their direct `upload.wikimedia.org` image URLs so `<img>` tags load directly), keep `Shell` and `General Motors` local vector logos as requested, and pair each logo with an appropriate light or dark `.wz-sp-well` background so both dark-ink logos (`Oracle`, `INEOS`, `HP`, `OKX`, `Claude`, `Revolut`, `Qatar Airways`, `Allianz`, `Deutsche Bank`, `CATL`, `Tencent`) and white/colored logos are 100% legible.
-  - *Why*: Eliminates all custom text-fallback SVGs while guaranteeing zero broken or invisible logos.
-- **Decision 2: Zero Emojis Across the R&D Interface**
-  - *Chosen Approach*: Replace all emoji markers (`🔬`, `🔧`, `⚡`, `🔒`) in the R&D views with clean geometric SVG line icons (stopwatch, calendar, blueprint node, lock) or clean typographic labels.
-  - *Why*: Matches the authentic F1 broadcast/game telemetry aesthetic requested by the user.
+- **Decision 1: Exact F1 Video Outer Green Sweep Ring (`1 Revolution = 1 Day`)**
+  - *Chosen Approach*: Remove the old `div.dot > div.ring` wrapper that squished the circle and replace it with a dedicated `52×52` 1:1 circular reticle assembly where the outer green gradient arc (`conic-gradient(from 260deg, transparent 0deg, rgba(24,224,88,0.15) 35deg, #18e058 100deg, transparent 101deg)`) is masked strictly to the outer ring annulus (`mask: radial-gradient(...)`) and rotated smoothly via `transform: rotate(calc(var(--angle, 0) * 1deg))` in `requestAnimationFrame`, while the inner circle has a crisp white ring border and dark core.
+  - *Why*: Matches the exact visual appearance and motion in `VID_20261022_202944_d5e52829.mp4` with zero border artifacts, zero oval squishing, and silky-smooth 60fps rotation synced to each day tick.
+- **Decision 2: Three-State View Machine Inside R&D (`hub` → `subcategory` → `detail`)**
+  - *Chosen Approach*: Maintain explicit view state (`rdScreen = 'hub' | 'subcategory' | 'detail'`, `selectedDeptId`, `selectedSubcatId`, `selectedPartId`) so clicking a department opens the Subcategory Browser (`SELECT A PART TO RESEARCH`), and clicking a part card opens the dedicated `DEVELOP UPGRADE` page with a clean Back button at each level.
+  - *Why*: Matches the exact 3-screen hierarchy from your F1 game screenshots while keeping navigation instant.
+- **Decision 3: In-App Confirmation Modal for Delete Championship**
+  - *Chosen Approach*: Render an accessible, keyboard- and touch-friendly modal overlay before invoking `wipe()`.
+  - *Why*: Prevents accidental career loss with a single misclick in the Settings menu and works reliably across desktop and mobile browsers without relying on blocked `window.confirm` popups.
 
 ---
 
 ## 4. Technical Architecture & Data Strategy *(Technical Reference)*
 
+### Architecture & Component Diagram
+
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                        MONOPOSTO COMPANION DATA LAYER                      │
-├──────────────────────────────────────┬─────────────────────────────────────┤
-│Sponsors & Engines Catalog            │2026 Calendar & Track Maps           │
-│• 12 Teams × 4 Official Sponsors      │• 22 Rounds                          │
-│• Direct Wikimedia & Postimg Logos    │• 16 Updated .webp Circuit Maps      │
-│• Inverse Base vs. Weekly Archetypes  │  (Bahrain, Saudi, Miami, Canada,    │
-│                                      │   Spain, Austria, UK, Belgium, etc.)│
-└──────────────────┬───────────────────┴──────────────────┬──────────────────┘
-                   │                                      │
-                   ▼                                      ▼
+│                        SITE HEADER SETTINGS MENU                           │
+│  [Export Save]  [Import Save]  [Delete Championship…] ──► Confirm Modal    │
+└──────────────────────────────────────────────────────────────┬─────────────┘
+                                                               │ Confirm
+                                                               ▼
+                                                    wipe() + Route to #/start
+
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                           VIEW & INTERACTION LAYER                         │
-├──────────────────────────┬──────────────────────────┬──────────────────────┤
-│F1 R&D Hub & Inspector    │Vehicle Performance Graph │Championship Matrix   │
-│• Sub-tabs: Performance / │• 12-Team Horizontal Bars │• Fixed 24px tabular  │
-│  R&D in Progress /       │• Vertical White Baseline │  position column on  │
-│  Progress History        │  at Car Power 4.00       │  .mx-ctor-row (1-12) │
-│• 2×2 Department Grid     │• Player Highlight Bar +  │                      │
-│• 2-Box Upgrade Inspector │  Right Team Color Swatch │                      │
-│  + Completion Timeline   │                          │                      │
-└──────────────────────────┴──────────────────────────┴──────────────────────┘
+│           EXACT F1 VIDEO ADVANCING RETICLE (`HqDashboardView`)             │
+│         ╭───━━━───╮   <-- Outer green gradient sweep wedge (rotates 360°   │
+│    ┄┄┄┄ │  ( ▶ )  │       clockwise per day; masked to outer annulus)      │
+│         ╰────┬────╯   <-- Crisp white-ringed dark inner circle             │
+│              │            + vertical timeline line below                   │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│                   R&D 3-SCREEN FLOW (ResearchDevView)                      │
+├────────────────────────────────────────────────────────────────────────────┤
+│  SCREEN 1: 2x2 DEPARTMENT HUB (`rdScreen === 'hub'`)                       │
+│  ┌─────────────────────────┬─────────────────────────┐                     │
+│  │ AERODYNAMICS            │ CHASSIS                 │                     │
+│  ├─────────────────────────┼─────────────────────────┤                     │
+│  │ POWERTRAIN              │ DURABILITY              │                     │
+│  └─────────────────────────┴─────────────────────────┘                     │
+│                                    │ Click Department                      │
+│                                    ▼                                       │
+│  SCREEN 2: SUBCATEGORY BROWSER (`rdScreen === 'subcategory'`)              │
+│  ┌──────────┬───────────────────────────────────────────────────────────┐  │
+│  │    ^     │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌─────────┐ │  │
+│  │  4/6     │  │ PLANK      │ │ INTERCOOLER│ │ HYDRAULICS │ │ UNKNOWN │ │  │
+│  │  WEIGHT  │  │ CONSTRUCT. │ │ POSITIONING│ │            │ │ UPGRADE │ │  │
+│  │  REDIST. │  └────────────┘ └────────────┘ └────────────┘ └─────────┘ │  │
+│  │    v     │    [Completed]    [Completed]    [Available]    [Locked]  │  │
+│  └──────────┴───────────────────────────────────────────────────────────┘  │
+│  Lower Subcategory Strips:                                                 │
+│  [6/8 Weight Reduction]  [✓]-[✓]-[✓]-[✓]-[✓]-[✓]-[ ]-[?]                   │
+│  [4/5 Braking & Susp.]   [✓]-[✓]-[✓]-[✓]-[?]                               │
+│                                    │ Click Unlocked Part Card              │
+│                                    ▼                                       │
+│  SCREEN 3: DEVELOP UPGRADE PAGE (`rdScreen === 'detail'`)                  │
+│  ┌───────────────────────────────────────┬──────────────────────────────┐  │
+│  │ Left: Chamfered Card + Detail Box     │ Right Top: UNLOCKS:          │  │
+│  │ Middle: Grand Prix Calendar Timeline  │ Right Bottom: VEHICLE        │  │
+│  │ Bottom: Research / Manufacture Boxes  │ PERFORMANCE COMPARISON       │  │
+│  └───────────────────────────────────────┴──────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
-
-### Official 12-Team Sponsor Roster Mapping
-
-| Team | Slot 1 (`HIGH BASE · LOW WEEKLY`) | Slot 2 (`HIGH RACE GOAL BONUS`) | Slot 3 (`BALANCED BASE & WEEKLY`) | Slot 4 (`LOWEST BASE · HIGHEST WEEKLY`) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Haas** | Toyota Gazoo Racing (TGR) | Haas Automation | Play'n GO | Exein |
-| **Red Bull** | Oracle | Ford | Mobil 1 | 1Password |
-| **Mercedes** | Petronas | INEOS | Microsoft | Adidas |
-| **Ferrari** | HP | Shell *(keep existing)* | UniCredit | PUMA |
-| **McLaren** | Mastercard | OKX | Google Chrome | Gemini |
-| **Aston Martin** | Aramco | Honda | Cognizant | JCB |
-| **Williams** | Atlassian | Barclays | Claude | Duracell |
-| **Audi** | Revolut | bp | NinjaOne | Qatar Airways |
-| **Cadillac** | General Motors *(keep existing)* | TWG Motorsports | Tommy Hilfiger | IFS |
-| **BMW** | iQOO | Shell *(keep existing)* | Allianz | Deutsche Bank |
-| **BYD** | Huawei | CATL | Tencent | Lenovo |
-| **Apple Porsche** | Apple Music | TAG Heuer | BOSS | Mobil 1 |
 
 ### Interactive Component & State Mapping
-- **R&D Sub-Tab Switching (`Performance` / `R&D in Progress` / `Progress History`)**: Clicking a sub-tab updates `activeSubTab` and re-renders either the 2×2 Department Hub + Vehicle Performance Comparison, the live queue of active research/manufacturing tasks, or the completed upgrades log.
-- **Department Selection & Part Inspector**: Clicking any of the 4 department cards sets `selectedDeptId` and opens the **Research Upgrade** inspector for that department. Clicking any separate part in the department's Phase 1 / 2 / 3 selector rail updates `selectedPartId`, refreshing the Left Chamfered Card, Right Translucent Detail Card, Completion Timeline Strip, and Bottom Action Box (`Start Research` for Step A, and `Manufacture Car #1 / Car #2 / Both` for Step B).
+
+- **Settings Delete Modal**:
+  - Clicking `#set-delete` closes the dropdown and opens `#delete-confirm-modal`.
+  - Clicking `#confirm-delete-cancel` or the backdrop closes the modal without touching the save.
+  - Clicking `#confirm-delete-yes` calls `wipe()`, resets `--team` color, closes the modal, and navigates to `#/start`.
+- **F1 Advancing Reticle (`#ring` in `HqDashboardView.js` & `css/components.css`)**:
+  - Clicking `#ctl` or `#go` activates `.is-advancing` on `#ring`.
+  - During `requestAnimationFrame` in `HqDashboardView.js`, `--sweep-deg` rotates smoothly from `0deg` to `360deg` over `DAY_MS`; each time a revolution completes at 12 o'clock, `advanceOneDay(s)` fires and the date header updates seamlessly.
+- **Subcategory Browser (`SELECT A PART TO RESEARCH`)**:
+  - Clicking `^` or `v` on the left vertical spine cycles `selectedSubcatId` through the current department's subcategories.
+  - Clicking any compact subcategory progress strip below jumps directly to that subcategory.
+  - Clicking an unlocked part card sets `selectedPartId` and transitions `rdScreen` to `'detail'`.
+- **Develop Upgrade Page (`DEVELOP UPGRADE`)**:
+  - Displays the selected part's specification, RP discount math, calendar timeline with Grand Prix flags, `UNLOCKS:` downstream parts, and the 12-team `VEHICLE PERFORMANCE COMPARISON` chart.
+  - Clicking **Back** returns to `rdScreen = 'subcategory'` with the current department and subcategory preserved.

@@ -2,9 +2,9 @@
 // Features the vertical white baseline marker at Car Power 4.00 (where the lowest
 // starting speed cars just touch the baseline, and cars move ahead to the right
 // of the baseline as their Car Power increases across the season).
-import { TEAMS, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022h';
-import { getState, truePower } from '../engine/store.js?v=20261022h';
-import { topbarHTML } from './shared.js?v=20261022h';
+import { TEAMS, driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022j';
+import { getState, truePower } from '../engine/store.js?v=20261022j';
+import { topbarHTML } from './shared.js?v=20261022j';
 
 // Baseline Car Power = 4.00 sits at 38% of the horizontal track width.
 // Cars at 4.00 (Haas, Cadillac, BMW at season start) touch the vertical line at 38%;
@@ -19,7 +19,7 @@ export function powerToBarPct(powerVal) {
   return +(BASELINE_PCT + ((clamped - 4.0) / 6.0) * (100 - BASELINE_PCT)).toFixed(2);
 }
 
-export function vehiclePerformanceComparisonHTML(s = getState()) {
+export function vehiclePerformanceComparisonHTML(s = getState(), projectedDpGain = 0) {
   const speedSum = t => driversOfTeam(t.id).reduce((a, d) => a + d.speed, 0);
   const rows = TEAMS.map(t => {
     const extraDp = (s.teamDp && s.teamDp[t.id]) ? s.teamDp[t.id] / 100 : 0;
@@ -44,11 +44,14 @@ export function vehiclePerformanceComparisonHTML(s = getState()) {
       <div class="f1-perf-chart">
         ${rows.map(r => {
           const widthPct = powerToBarPct(r.value);
+          const gainPower = r.mine && projectedDpGain > 0 ? r.value + (projectedDpGain / 100) : r.value;
+          const gainPct = r.mine && projectedDpGain > 0 ? Math.max(1.2, +(powerToBarPct(gainPower) - widthPct).toFixed(2)) : 0;
           return `
             <div class="f1-perf-row ${r.mine ? 'is-player' : ''}">
               <div class="f1-perf-track-wrap">
                 <div class="f1-perf-track">
                   <div class="f1-perf-fill ${r.mine ? 'mine' : ''}" style="width:${widthPct}%"></div>
+                  ${gainPct > 0 ? `<div class="f1-perf-gain" style="left:${widthPct}%;width:${gainPct}%" title="+${projectedDpGain} DP Projected Upgrade Gain"></div>` : ''}
                 </div>
                 <div class="f1-perf-baseline" style="left:${BASELINE_PCT}%" title="Season Base Development (Car Power 4.00)"></div>
               </div>

@@ -1,6 +1,6 @@
-// Shared UI fragments — the HUD and top bar every screen uses.
+// Shared UI fragments — the HUD, top bar, and Delete Championship confirmation modal.
 // Values always come from the live save; nothing is typed in by hand.
-import { getState, playerTeam } from '../engine/store.js?v=20261022h';
+import { getState, playerTeam } from '../engine/store.js?v=20261022j';
 
 export const fmt$ = v => '$' + (+v).toFixed(2) + 'M';
 
@@ -41,4 +41,56 @@ export function floater(cellId, text, cls) {
   f.className = 'delta ' + cls; f.textContent = text;
   cell.appendChild(f);
   setTimeout(() => f.remove(), 2300);
+}
+
+// In-app confirmation modal before deleting the championship save
+export function openDeleteConfirmModal(onConfirm) {
+  let existing = document.getElementById('delete-confirm-backdrop');
+  if (existing) existing.remove();
+
+  let teamName = 'Current Team';
+  try {
+    const t = playerTeam();
+    if (t && t.name) teamName = t.name;
+  } catch {
+    // ignore if no save
+  }
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'delete-confirm-backdrop';
+  backdrop.className = 'del-modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="del-modal-box" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
+      <div class="del-modal-eyebrow">CAREER SAVE MANAGEMENT</div>
+      <h2 class="del-modal-title" id="del-modal-title">DELETE CHAMPIONSHIP?</h2>
+      <p class="del-modal-desc">
+        Are you sure you want to permanently delete your <b>${teamName}</b> 2026 championship save?
+        All R&amp;D upgrades, facility phases, driver contracts, and race results will be erased.
+      </p>
+      <div class="del-modal-actions">
+        <button type="button" class="btn small" id="del-modal-cancel">CANCEL</button>
+        <button type="button" class="btn primary small" id="del-modal-confirm">DELETE CHAMPIONSHIP</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  const closeModal = () => {
+    backdrop.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = e => {
+    if (e.key === 'Escape') closeModal();
+  };
+  document.addEventListener('keydown', onKey);
+
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) closeModal();
+  });
+  backdrop.querySelector('#del-modal-cancel').addEventListener('click', closeModal);
+  backdrop.querySelector('#del-modal-confirm').addEventListener('click', () => {
+    closeModal();
+    if (typeof onConfirm === 'function') onConfirm();
+  });
 }

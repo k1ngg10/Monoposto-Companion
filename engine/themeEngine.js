@@ -1,6 +1,6 @@
 // THEME ENGINE — reads the saved team and paints the whole app with it.
 // Every accent in css/ uses var(--team); this is the only place that sets it.
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022h';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022j';
 
 export function applyTheme(teamId) {
   const team = teamById(teamId);

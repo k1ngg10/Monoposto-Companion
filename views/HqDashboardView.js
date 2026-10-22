@@ -1,6 +1,7 @@
 // HQ DASHBOARD — the advance-time agenda, active operations panel, and modal drawer.
 // Includes frosted-glass panels over the F1 garage backdrop, non-stacking weekly tick cards,
-// Race Weekend Hero Stop Card, and the Head of Engineering radio banner when blueprints await manufacturing.
+// Race Weekend Hero Stop Card, Head of Engineering radio banner, and the exact F1 game
+// clockwise green sweep advancing reticle (1 full 360° revolution = 1 simulated day).
 import {
   getState,
   save,
@@ -11,35 +12,67 @@ import {
   importJSON,
   driverPriorityStatus,
   unmanufacturedBlueprints
-} from '../engine/store.js?v=20261022h';
-import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022h';
-import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022h';
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022h';
-import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022h';
+} from '../engine/store.js?v=20261022j';
+import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022j';
+import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022j';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022j';
+import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022j';
 import {
   FACILITY_BACKDROPS,
   FACILITY_BRANCHES,
   branchPhaseInfo,
   maxResearchSlots,
   maxManufactureSlots
-} from '../data/facilitiesCatalog.js?v=20261022h';
-import { DEPARTMENTS } from '../data/partsCatalog.js?v=20261022h';
+} from '../data/facilitiesCatalog.js?v=20261022j';
+import { DEPARTMENTS } from '../data/partsCatalog.js?v=20261022j';
 import {
   researchQuote,
   startResearch,
   manufactureQuote,
   startManufacture,
   debutRound
-} from '../engine/rdEngine.js?v=20261022h';
-import { topbarHTML, refreshHUD, floater, fmt$ } from './shared.js?v=20261022h';
+} from '../engine/rdEngine.js?v=20261022j';
+import { topbarHTML, refreshHUD, floater, fmt$, openDeleteConfirmModal } from './shared.js?v=20261022j';
 
-let running = false, timer = null;
+let running = false;
+let rafId = null;
+let dayStartTs = 0;
+const DAY_SWEEP_MS = 620; // 1 full 360° clockwise green sweep revolution = 1 day
+
 let drawerMode = null; // null | 'research' | 'manufacture' | 'facility'
 let drawerMsg = '', drawerErr = false;
 
-const stop = () => { running = false; clearTimeout(timer); };
+const stop = () => {
+  running = false;
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  const ring = document.getElementById('ring');
+  if (ring) {
+    ring.classList.remove('is-advancing');
+    ring.style.setProperty('--sweep-deg', '0deg');
+  }
+};
 
 const GLYPH = { research: 'R', manufacture: 'D', facility: 'F', tick: 'W' };
+
+// Calendar + down-arrow badge SVG matching reference video header
+const SVG_DATE_CALENDAR = `
+  <svg class="hq-cal-svg" viewBox="0 0 36 34" width="34" height="32" fill="none" aria-hidden="true">
+    <path d="M5 7h22l-2.5 20H2.5L5 7z" stroke="#d8dce4" stroke-width="2" fill="rgba(255,255,255,0.03)"/>
+    <path d="M4.5 12h22" stroke="#d8dce4" stroke-width="2"/>
+    <line x1="10" y1="4" x2="9.5" y2="8" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
+    <line x1="21" y1="4" x2="20.5" y2="8" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
+    <rect x="8" y="15" width="3" height="2.5" fill="#d8dce4"/>
+    <rect x="13.5" y="15" width="3" height="2.5" fill="#d8dce4"/>
+    <rect x="19" y="15" width="3" height="2.5" fill="#d8dce4"/>
+    <rect x="7.5" y="20" width="3" height="2.5" fill="#d8dce4"/>
+    <rect x="13" y="20" width="3" height="2.5" fill="#d8dce4"/>
+    <circle cx="26.5" cy="24.5" r="6.5" fill="#d8dce4" stroke="#0e1015" stroke-width="1.5"/>
+    <path d="M23.8 23.3l2.7 3 2.7-3" stroke="#0e1015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
 
 function seasonLabel(s) {
   if (s.date < CALENDAR[0].sat) return 'Pre-season · 2026';
@@ -86,7 +119,10 @@ export function render(root) {
       ${topbarHTML()}
       <div class="hq-header-row">
         <div>
-          <div class="dateblock"><div class="bigdate" id="bigdate">${ord} <span>${month}</span></div></div>
+          <div class="dateblock">
+            ${SVG_DATE_CALENDAR}
+            <div class="bigdate" id="bigdate">${ord} <span>${month}</span></div>
+          </div>
           <div class="season" id="season-label">${seasonLabel(s)}</div>
         </div>
         <div class="hq-quick-bar">
@@ -99,9 +135,14 @@ export function render(root) {
       <div class="stage hq-stage">
         <div class="agenda glass hq-glass">
           <div class="agenda-title">Coming up</div>
-          <div class="node ctl">
-            <div class="dot" style="border:none;background:none;box-shadow:none">
-              <div class="ring" id="ring"><div class="inner">▶</div></div>
+          <div class="node ctl f1-ctl-node" id="ctl-row" role="button" tabindex="0" aria-label="Toggle Advancing Time">
+            <span class="f1-reticle-leader" aria-hidden="true"></span>
+            <div class="f1-reticle" id="ring">
+              <div class="f1-reticle-sweep" aria-hidden="true"></div>
+              <div class="f1-reticle-track" aria-hidden="true"></div>
+              <div class="f1-reticle-core">
+                <span class="f1-reticle-glyph" id="ring-glyph">▶</span>
+              </div>
             </div>
             <div class="ctl-label" id="ctl-label">ADVANCE TIME</div>
           </div>
@@ -123,7 +164,7 @@ export function render(root) {
                 <div class="card pos feed-day1-card"><div><div class="ct">Sponsor Signing Bonus</div><div class="cs">${team.name} sponsor package — Day 1 payout (+$${spEcon.weeklyIncomeK}k/wk recurring)</div></div><div class="amt pos">+${fmt$(signingCash)}</div></div>
                 <div class="card neg feed-day1-card"><div><div class="ct">Power Unit — ${pu ? pu.name : 'In-House'}</div><div class="cs">${team.works ? 'In-House Works PU R&D & Dyno Cap Allocation' : 'Customer engine supply contract'} — deducted from bank</div></div><div class="amt neg">−${fmt$(puCost)}</div></div>
               ` : ''}
-              <div class="hint" id="hint">Hit <b>ADVANCE</b> to roll the calendar forward. Weekly Monday income/costs replace the previous week's ledger card cleanly, and advancing stops automatically on Race Weekends.</div>
+              <div class="hint" id="hint">Hit <b>ADVANCE</b> (or click the circular reticle) to roll the calendar forward. Weekly Monday income/costs replace the previous week's ledger card cleanly, and advancing stops automatically on Race Weekends.</div>
             </div>
           </div>
         </div>
@@ -142,29 +183,70 @@ export function render(root) {
     </div>`;
 
   renderAgenda();
-  updateRing();
   renderRaceHero();
   renderRadioBanner();
   renderActiveOps();
   renderDrawer();
   bindStaticControls();
 
+  function toggleAdvance() {
+    const btn = root.querySelector('#advance');
+    const ring = document.getElementById('ring');
+    const glyph = document.getElementById('ring-glyph');
+    if (running) {
+      stop();
+      if (btn) {
+        btn.textContent = '▶ ADVANCE';
+        btn.classList.remove('stop');
+      }
+      if (glyph) glyph.textContent = '▶';
+      setCtl('ADVANCE TIME');
+      return;
+    }
+    running = true;
+    if (btn) {
+      btn.textContent = '■ STOP';
+      btn.classList.add('stop');
+    }
+    if (ring) {
+      ring.classList.add('is-advancing');
+      ring.style.setProperty('--sweep-deg', '0deg');
+    }
+    if (glyph) glyph.textContent = '■';
+    setCtl('STOP ADVANCING');
+    dayStartTs = performance.now();
+    rafId = requestAnimationFrame(tickSweep);
+  }
+
+  function tickSweep(now) {
+    if (!running) return;
+    const elapsed = now - dayStartTs;
+    const ring = document.getElementById('ring');
+    if (elapsed >= DAY_SWEEP_MS) {
+      // Completed 1 full 360° clockwise revolution at 12 o'clock -> advance 1 calendar day
+      dayStartTs = now - ((elapsed - DAY_SWEEP_MS) % DAY_SWEEP_MS);
+      if (ring) ring.style.setProperty('--sweep-deg', '0deg');
+      const keepGoing = stepDay();
+      if (!keepGoing || !running) return;
+    } else {
+      const deg = (elapsed / DAY_SWEEP_MS) * 360;
+      if (ring) ring.style.setProperty('--sweep-deg', deg.toFixed(1) + 'deg');
+    }
+    rafId = requestAnimationFrame(tickSweep);
+  }
+
   function bindStaticControls() {
     const btn = root.querySelector('#advance');
-    if (btn) {
-      btn.onclick = () => {
-        if (running) {
-          stop();
-          btn.textContent = '▶ ADVANCE';
-          btn.classList.remove('stop');
-          setCtl('ADVANCE TIME');
-          return;
+    if (btn) btn.onclick = toggleAdvance;
+
+    const ctlRow = root.querySelector('#ctl-row');
+    if (ctlRow) {
+      ctlRow.onclick = toggleAdvance;
+      ctlRow.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleAdvance();
         }
-        running = true;
-        btn.textContent = '■ STOP';
-        btn.classList.add('stop');
-        setCtl('STOP ADVANCING');
-        timer = setTimeout(stepDay, 150);
       };
     }
 
@@ -204,9 +286,11 @@ export function render(root) {
       wipeBtn.onclick = e => {
         e.preventDefault();
         stop();
-        wipe();
-        document.documentElement.style.setProperty('--team', '#e10600');
-        location.hash = '#/start';
+        openDeleteConfirmModal(() => {
+          wipe();
+          document.documentElement.style.setProperty('--team', '#e10600');
+          location.hash = '#/start';
+        });
       };
     }
   }
@@ -214,16 +298,6 @@ export function render(root) {
   function setCtl(t) {
     const el = document.getElementById('ctl-label');
     if (el) el.textContent = t;
-  }
-
-  function updateRing() {
-    const st = getState();
-    const race = nextRace(st.date);
-    const ring = document.getElementById('ring');
-    if (!ring) return;
-    if (!race) { ring.style.setProperty('--p', '100%'); return; }
-    const start = fromISO('2026-02-20'), now = fromISO(st.date), target = fromISO(race.sat);
-    ring.style.setProperty('--p', Math.min(100, Math.max(0, (now - start) / (target - start) * 100)) + '%');
   }
 
   function renderAgenda() {
@@ -333,7 +407,7 @@ export function render(root) {
             </div>
           </div>
           <div class="hq-ops-links">
-            <a class="btn small" href="#/rd">FULL 40-PART R&amp;D TREE →</a>
+            <a class="btn small" href="#/rd">FULL R&amp;D TREE →</a>
             <a class="btn small" href="#/facilities">FULL FACILITIES TREE →</a>
           </div>
         </div>
@@ -431,7 +505,7 @@ export function render(root) {
         for (const part of dept.parts) {
           const task = st.tasks.find(t => t.partId === part.id);
           const q = researchQuote(st, part.id, 'standard');
-          if (q && !task && !q.gateBlocked) {
+          if (q && !task && !q.gateBlocked && !q.prereqBlocked && !q.unbuiltPrevSpec) {
             available.push({ dept, part, q });
           }
         }
@@ -442,8 +516,8 @@ export function render(root) {
           ${available.length ? available.map(({ dept, part, q }) => `
             <div class="hq-drawer-row">
               <div>
-                <div class="hq-drawer-itemtitle">${part.name} <span class="tag">${dept.name}</span> <span class="tag">${part.core ? `Spec ${q.step.spec}` : `Phase ${part.phase || 1}`}</span></div>
-                <div class="hq-drawer-itemsub">+${q.step.dp} Team DP (${q.step.dp / 2} DP/car) · Mfg Cost ${q.step.manufCost ? fmt$(q.step.manufCost) : 'In-House'}</div>
+                <div class="hq-drawer-itemtitle">${part.name} <span class="tag">${dept.name} · ${part.subcategoryName || ''}</span> <span class="tag">${part.core ? `Spec ${q.step.spec}` : `Phase ${part.phase || 1}`}</span></div>
+                <div class="hq-drawer-itemsub">+${q.step.dp} Team DP (${q.step.dp / 2} DP/car) · Mfg Cost ${q.step.costPerCopy ? fmt$(q.step.costPerCopy) : 'In-House'}</div>
               </div>
               <button class="btn small" data-drawer-res="${part.id}">RESEARCH · ${q.rp} RP · ${q.days}d</button>
             </div>
@@ -601,7 +675,7 @@ export function render(root) {
       floater('hud-cash', `+${fmt$(ev.income)}`, 'pos');
       floater('hud-rp', `+${ev.rp} RP`, 'pos');
       pushFeedItem(`
-        <div class="card pos feed-tick-card"><div><div class="ct">Weekly Sponsor Base Income</div><div class="cs">Monday settlement · 40% season base (${prettyDate(getState().date)})</div></div><div class="amt pos">+${fmt$(ev.income)}</div></div>
+        <div class="card pos feed-tick-card"><div><div class="ct">Weekly Sponsor Base Income</div><div class="cs">Monday settlement · Recurring weekly payout (${prettyDate(getState().date)})</div></div><div class="amt pos">+${fmt$(ev.income)}</div></div>
         <div class="card neg feed-tick-card"><div><div class="ct">Weissach HQ Running Costs</div><div class="cs">Weekly department &amp; facility operating overhead</div></div><div class="amt neg">−${fmt$(ev.costs)}</div></div>
         <div class="card pos feed-tick-card"><div><div class="ct">Weekly Resource Points</div><div class="cs">Engineering &amp; Personnel generation · ATR applied</div></div><div class="amt pos">+${ev.rp} RP</div></div>
       `, true);
@@ -618,7 +692,7 @@ export function render(root) {
   }
 
   function stepDay() {
-    if (!running) return;
+    if (!running) return false;
     const st = getState();
     const fired = advance(st);
     const { ord: o2, month: m2 } = dateParts(st.date);
@@ -630,11 +704,12 @@ export function render(root) {
     if (fd) fd.textContent = prettyDate(st.date);
 
     renderAgenda();
-    updateRing();
     refreshHUD();
     for (const ev of fired) fireEvent(ev);
     renderRadioBanner();
     renderActiveOps();
+
+    const glyph = document.getElementById('ring-glyph');
 
     if (fired.some(e => e.type === 'race')) {
       stop();
@@ -643,8 +718,9 @@ export function render(root) {
         btn.textContent = '▶ ADVANCE';
         btn.classList.remove('stop');
       }
+      if (glyph) glyph.textContent = '▶';
       setCtl('ADVANCE TIME');
-      return;
+      return false;
     }
     if (!nextRace(st.date) && st.date > '2026-12-06') {
       stop();
@@ -653,9 +729,9 @@ export function render(root) {
         btn.textContent = 'SEASON OVER';
         btn.disabled = true;
       }
-      return;
+      if (glyph) glyph.textContent = '✓';
+      return false;
     }
-    timer = setTimeout(stepDay, 220);
+    return true;
   }
 }
-

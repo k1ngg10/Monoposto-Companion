@@ -1,16 +1,17 @@
 // Entry point + hash router. No save → championship creation; save → Matrix.
-import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.js?v=20261022h';
-import { applyTheme } from './engine/themeEngine.js?v=20261022h';
-import { render as StartWizard } from './views/StartWizardView.js?v=20261022h';
-import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022h';
-import { render as HQ } from './views/HqDashboardView.js?v=20261022h';
-import { render as RaceWeekend } from './views/RaceWeekendView.js?v=20261022h';
-import { render as ResearchDev } from './views/ResearchDevView.js?v=20261022h';
-import { render as Facilities } from './views/FacilitiesView.js?v=20261022h';
-import { render as Standings } from './views/StandingsView.js?v=20261022h';
-import { render as DevGraph } from './views/DevGraphView.js?v=20261022h';
-import { render as SponsorsStaff } from './views/SponsorsStaffView.js?v=20261022h';
-import { render as DriverMarket } from './views/DriverMarketView.js?v=20261022h';
+import { hasSave, getState, wipe, exportJSON, importJSON } from './engine/store.js?v=20261022j';
+import { applyTheme } from './engine/themeEngine.js?v=20261022j';
+import { openDeleteConfirmModal } from './views/shared.js?v=20261022j';
+import { render as StartWizard } from './views/StartWizardView.js?v=20261022j';
+import { render as ChampionshipMatrix } from './views/ChampionshipMatrixView.js?v=20261022j';
+import { render as HQ } from './views/HqDashboardView.js?v=20261022j';
+import { render as RaceWeekend } from './views/RaceWeekendView.js?v=20261022j';
+import { render as ResearchDev } from './views/ResearchDevView.js?v=20261022j';
+import { render as Facilities } from './views/FacilitiesView.js?v=20261022j';
+import { render as Standings } from './views/StandingsView.js?v=20261022j';
+import { render as DevGraph } from './views/DevGraphView.js?v=20261022j';
+import { render as SponsorsStaff } from './views/SponsorsStaffView.js?v=20261022j';
+import { render as DriverMarket } from './views/DriverMarketView.js?v=20261022j';
 
 const ROUTES = {
   start: StartWizard, matrix: ChampionshipMatrix, hq: HQ, race: RaceWeekend, rd: ResearchDev,
@@ -35,7 +36,7 @@ window.addEventListener('hashchange', route);
 route();
 
 // Settings menu (header) — save management: export/import backup, and
-// deleting the championship to start over with a new team.
+// deleting the championship (with confirmation modal) to start over with a new team.
 (function setupSettings() {
   const btn = document.getElementById('settings-btn');
   const menu = document.getElementById('settings-menu');
@@ -69,9 +70,11 @@ route();
     e.preventDefault();
     e.stopPropagation();
     close();
-    wipe();
-    document.documentElement.style.setProperty('--team', '#e10600');
-    if (location.hash === '#/start') route();
-    else location.hash = '#/start';
+    openDeleteConfirmModal(() => {
+      wipe();
+      document.documentElement.style.setProperty('--team', '#e10600');
+      if (location.hash === '#/start') route();
+      else location.hash = '#/start';
+    });
   });
 })();

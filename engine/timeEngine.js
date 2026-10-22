@@ -2,18 +2,18 @@
 // advance() moves the save one day forward and returns everything that fired:
 // task completions (research / manufacture / facility sub-upgrades), the Monday
 // weekly tick, and race-weekend arrivals.
-import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022h';
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022h';
-import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022h';
+import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022j';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022j';
+import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022j';
 import {
   facilityNodeById,
   hasFacilityNode,
   branchPhaseInfo,
   syncLegacyFacilities,
   facilityEconomyStats
-} from '../data/facilitiesCatalog.js?v=20261022h';
-import { resolveResearch, resolveManufacture } from './rdEngine.js?v=20261022h';
-import { log, save } from './store.js?v=20261022h';
+} from '../data/facilitiesCatalog.js?v=20261022j';
+import { resolveResearch, resolveManufacture } from './rdEngine.js?v=20261022j';
+import { log, save } from './store.js?v=20261022j';
 
 // --- date helpers ------------------------------------------------------------
 export const DAY = 86400000;

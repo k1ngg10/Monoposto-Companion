@@ -14,7 +14,7 @@
 // within a tight, fair band across all 12 teams, and Works teams pay an In-House
 // Factory PU Cap Allocation on Day 1 so Works and Customer teams start on an equal footing.
 
-import { LOGO_DATA } from './logoData.js?v=20261022h';
+import { LOGO_DATA } from './logoData.js?v=20261022j';
 
 const WHITE_WELL = 'linear-gradient(135deg, #ffffff 0%, #f1f4f9 100%)';
 

@@ -1,10 +1,10 @@
 // SPONSORS & STAFF — the money pillar and the people pillar (SPEC §6).
 // Only the 2 active sponsors show objective cards; the other two pay 35% passive board retainer.
-import { sponsorsOfTeam, puById, puContractCost, sponsorBreakdown, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022h';
-import { teamById } from '../data/teamsAndDrivers.js?v=20261022h';
-import { STAFF } from '../data/facilitiesCatalog.js?v=20261022h';
-import { getState, save, log } from '../engine/store.js?v=20261022h';
-import { topbarHTML, fmt$ } from './shared.js?v=20261022h';
+import { sponsorsOfTeam, puById, puContractCost, sponsorBreakdown, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022j';
+import { teamById } from '../data/teamsAndDrivers.js?v=20261022j';
+import { STAFF } from '../data/facilitiesCatalog.js?v=20261022j';
+import { getState, save, log } from '../engine/store.js?v=20261022j';
+import { topbarHTML, fmt$ } from './shared.js?v=20261022j';
 
 let msg = '', msgErr = false;
 

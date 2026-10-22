@@ -2,8 +2,8 @@
 // It never decides an on-track outcome (SPEC hard boundary). Points are F1's:
 // 25-18-15-12-10-8-6-4-2-1. Race RP income follows the expectation-relative
 // reward engine (SPEC §6): beat your band ×1.5, in band ×1.0, miss ×0.6.
-import { DRIVERS, driversOfTeam, teamById } from '../data/teamsAndDrivers.js?v=20261022h';
-import { log } from './store.js?v=20261022h';
+import { DRIVERS, driversOfTeam, teamById } from '../data/teamsAndDrivers.js?v=20261022j';
+import { log } from './store.js?v=20261022j';
 
 export const POINTS_TABLE = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 export const pointsFor = pos => (pos >= 1 && pos <= 10) ? POINTS_TABLE[pos - 1] : 0;

@@ -3,7 +3,7 @@
 // Step 2: Power Unit lock-in card (deducts Works In-House Cap Allocation or Customer Engine Contract from Day 1 Signing Cash).
 // Step 3: Owner Background, 4 Sponsor cards (with inverse Upfront Base vs Weekly Cashflow trade-offs & high-contrast logo wells),
 //         and the 3 F1 My Team Starting Baseline Toggles (Facilities, Car Development, Cash Reserves).
-import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam, logoOf } from '../data/teamsAndDrivers.js?v=20261022h';
+import { TEAMS, teamById, tierOf, ENTRY_TIERS, driversOfTeam, logoOf } from '../data/teamsAndDrivers.js?v=20261022j';
 import {
   PU_SUPPLIERS,
   puById,
@@ -12,15 +12,15 @@ import {
   sponsorsOfTeam,
   sponsorBreakdown,
   computeSponsorEconomy
-} from '../data/sponsorsAndEngines.js?v=20261022h';
-import { STARTER_DEV_PRESETS } from '../data/partsCatalog.js?v=20261022h';
+} from '../data/sponsorsAndEngines.js?v=20261022j';
+import { STARTER_DEV_PRESETS } from '../data/partsCatalog.js?v=20261022j';
 import {
   newSave,
   FACILITY_BASELINE_PRESETS,
   CASH_RESERVE_PRESETS
-} from '../engine/store.js?v=20261022h';
-import { applyTheme } from '../engine/themeEngine.js?v=20261022h';
-import { fmt$ } from './shared.js?v=20261022h';
+} from '../engine/store.js?v=20261022j';
+import { applyTheme } from '../engine/themeEngine.js?v=20261022j';
+import { fmt$ } from './shared.js?v=20261022j';
 
 const speedSum = t => driversOfTeam(t.id).reduce((a, d) => a + d.speed, 0);
 const ORDER = [...TEAMS].sort((a, b) => b.carPower - a.carPower || speedSum(b) - speedSum(a));

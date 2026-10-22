@@ -5,7 +5,7 @@
 // not used — a number tile in team colour stands in for the portrait.
 import { TEAMS, DRIVERS, driversOfTeam, teamById, logoOf } from '../data/teamsAndDrivers.js?v=20261022b';
 import { CALENDAR } from '../data/calendar2026.js?v=20261022b';
-import { getState, playerTeam, truePower } from '../engine/store.js?v=20261022b';
+import { getState, save, playerTeam, truePower, driverPriorityStatus } from '../engine/store.js?v=20261022b';
 import { constructorStandings } from '../engine/raceSimulator.js?v=20261022b';
 import { contractWindowReport } from '../engine/driverMarketEngine.js?v=20261022b';
 import { prettyDate } from '../engine/timeEngine.js?v=20261022b';
@@ -52,14 +52,16 @@ function statusFor(driver, report, state) {
   return { label: 'Stable', cls: '' };
 }
 
-function driverCell(driver, report, state) {
+function driverCell(driver, report, state, prio) {
   const team = teamById(driver.team);
   const st = statusFor(driver, report, state);
+  const isPrio = Boolean(prio && prio.priorityDriver && prio.priorityDriver.id === driver.id);
+  const effSpd = isPrio ? Math.min(10, driver.speed + 1) : driver.speed;
   return `<div class="mx-driver">
     <span class="mx-num" style="background:${team.color}">${driver.no}</span>
     <span class="mx-dmeta">
-      <span class="mx-dname"><span class="fn">${driver.first}</span> <span class="ln">${driver.last}</span></span>
-      <span class="mx-dstats">SPD <b>${driver.speed}</b> · RSK <b>${driver.risk}</b> · <span class="mx-status ${st.cls}">${st.label}</span></span>
+      <span class="mx-dname"><span class="fn">${driver.first}</span> <span class="ln">${driver.last}</span>${isPrio ? ' <span class="mx-priobadge" title="#1 Car Upgrade Priority (+1 Speed)">★ +1 SPD</span>' : ''}</span>
+      <span class="mx-dstats">SPD <b>${effSpd}</b>${isPrio ? `<small style="color:var(--green)">(+1)</small>` : ''} · RSK <b>${driver.risk}</b> · <span class="mx-status ${st.cls}">${st.label}</span></span>
     </span>
   </div>`;
 }
@@ -67,6 +69,7 @@ function driverCell(driver, report, state) {
 export function render(root) {
   const s = getState();
   const me = playerTeam();
+  const prio = driverPriorityStatus(s);
   const loggedRounds = Object.keys(s.results).length;
   const currentRound = Math.min(22, loggedRounds + 1);
   const race = CALENDAR.find(r => r.round === currentRound);
@@ -93,10 +96,32 @@ export function render(root) {
   const powerOf = t => (t.id === s.teamId ? Math.floor(truePower()) : t.carPower + Math.floor(((s.teamDp && s.teamDp[t.id]) || 0) / 100));
 
   // Required in-game changes: any driver/team whose tracked value no longer
-  // matches its Monoposto integer (today: the player team's car power).
+  // matches its Monoposto integer (player team's car power + #1 Priority Driver Speed).
   const changes = [];
   if (Math.floor(truePower()) !== me.carPower) {
     changes.push({ team: me, label: 'Car Power', from: me.carPower, to: Math.floor(truePower()) });
+  }
+  if (prio.priorityDriver) {
+    const newSpd = Math.min(10, prio.priorityDriver.speed + 1);
+    if (newSpd !== prio.priorityDriver.speed) {
+      changes.push({
+        team: me,
+        label: `${prio.priorityDriver.last} Speed (#1 Car Priority)`,
+        from: prio.priorityDriver.speed,
+        to: newSpd
+      });
+    }
+  } else if (prio.revertDriver) {
+    const prevSpd = Math.min(10, prio.revertDriver.speed + 1);
+    if (prevSpd !== prio.revertDriver.speed) {
+      changes.push({
+        team: me,
+        label: `${prio.revertDriver.last} Speed (Cars Equalized)`,
+        from: prevSpd,
+        to: prio.revertDriver.speed,
+        isRevert: true
+      });
+    }
   }
 
   const atrCards = ATR_MILESTONES.map(m => {
@@ -156,8 +181,8 @@ export function render(root) {
               <td><div class="mx-team"><span class="mx-colorbar" style="background:${t.color}"></span>${logoHTML(t)}<span class="mx-tname">${t.name.toUpperCase()}</span></div></td>
               <td class="c"><span class="mx-power" style="border-color:${t.color}">${powerOf(t)}</span></td>
               <td><div class="mx-prog"><span class="mx-track"><span class="mx-fill" style="width:${pct}%;background:${t.color}"></span></span><b>${pct}%</b></div></td>
-              <td>${driverCell(d1, report, s)}</td>
-              <td>${driverCell(d2, report, s)}</td>
+              <td>${driverCell(d1, report, s, prio)}</td>
+              <td>${driverCell(d2, report, s, prio)}</td>
             </tr>`;
           }).join('')}
           </tbody>
@@ -167,7 +192,7 @@ export function render(root) {
           <div class="mx-mini">
             <div class="mx-mini-title">CONSTRUCTORS' CHAMPIONSHIP</div>
             <div class="mx-ctor">
-              ${constructors.map((c, i) => `<div class="mx-ctor-row ${c.team.id === s.teamId ? 'me' : ''}"><span>${i + 1}</span>${logoHTML(c.team)}<span class="mx-ctor-name">${c.team.name.toUpperCase()}</span><b>${c.points}</b></div>`).join('')}
+              ${constructors.map((c, i) => `<div class="mx-ctor-row ${c.team.id === s.teamId ? 'me' : ''}"><span class="mx-ctor-pos">${i + 1}</span>${logoHTML(c.team)}<span class="mx-ctor-name">${c.team.name.toUpperCase()}</span><b>${c.points}</b></div>`).join('')}
             </div>
           </div>
           <div class="mx-mini mx-next">
@@ -187,7 +212,7 @@ export function render(root) {
           <div class="mx-rail-title">⚠ REQUIRED MONOPOSTO IN-GAME CHANGES<br>BEFORE NEXT RACE</div>
           ${changes.length
             ? `<div class="mx-badge">${changes.length} CHANGE${changes.length === 1 ? '' : 'S'} REQUIRED</div>` +
-              changes.map(c => `<div class="mx-change-row">${logoHTML(c.team)}<span class="mx-change-name">${c.team.name.toUpperCase()}</span><span class="mx-change-what">Car Power</span><b>${c.from} → ${c.to}</b></div>`).join('')
+              changes.map(c => `<div class="mx-change-row">${logoHTML(c.team)}<span class="mx-change-name">${c.team.name.toUpperCase()}</span><span class="mx-change-what">${c.label}</span><b>${c.from} → ${c.to}</b>${c.isRevert ? `<button class="btn small" id="mx-ack-revert" style="margin-left:6px;padding:3px 8px;font-size:.62rem">✓ Done</button>` : ''}</div>`).join('')
             : `<div class="mx-nochange">No changes required — every Monoposto value already matches the tracker. Development and logged results create the change list here.</div>`}
           <div class="mx-rail-note">Update these exact values in the Monoposto mobile game.</div>
         </div>
@@ -229,4 +254,13 @@ export function render(root) {
       </aside>
     </div>
   </div>`;
+
+  const ackBtn = root.querySelector('#mx-ack-revert');
+  if (ackBtn) {
+    ackBtn.onclick = () => {
+      s.equalizedRevertDriverId = null;
+      save();
+      render(root);
+    };
+  }
 }

@@ -7,7 +7,7 @@ import { LOGO_DATA } from './logoData.js?v=20261022b';
 export const logoOf = t => LOGO_DATA[t.id] || t.logo || null;
 export const TEAMS = [
   { id: 'porsche',  name: 'Apple Porsche',        short: 'POR', color: '#f5c542', carPower: 5, pu: 'porsche', works: true,  tier: 'newcomer', logo: null,
-    logoBg: 'linear-gradient(160deg, #fafaf7, #e6e4de)', wellBg: 'linear-gradient(160deg, #fafaf7, #dcd9d0)' }, // Newcomer by canon despite Power 5
+    logoBg: '#ffffff', wellBg: '#ffffff' }, // Newcomer by canon despite Power 5
   { id: 'redbull',  name: 'Red Bull Ford',        short: 'RBR', color: '#33479e', carPower: 6, pu: 'redbullford', works: true, logo: 'assets/logos/team-redbull.svg',
     wellBg: 'linear-gradient(160deg, #1c2547, #0b0f22)' },
   { id: 'ferrari',  name: 'Ferrari HP',           short: 'FER', color: '#e8002d', carPower: 6, pu: 'ferrari', works: true, logo: 'assets/logos/team-ferrari.svg',

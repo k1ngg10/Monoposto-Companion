@@ -1,11 +1,17 @@
 // TIME ENGINE — the advance-time clock (SPEC §4).
 // advance() moves the save one day forward and returns everything that fired:
-// task completions (research / manufacture / facility), the Monday weekly
-// tick, and race-weekend arrivals. The agenda is GENERATED from state —
-// player entries exist only because the player queued them.
+// task completions (research / manufacture / facility sub-upgrades), the Monday
+// weekly tick, and race-weekend arrivals.
 import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022b';
 import { teamById } from '../data/teamsAndDrivers.js?v=20261022b';
-import { totalSponsorValue } from '../data/sponsorsAndEngines.js?v=20261022b';
+import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022b';
+import {
+  facilityNodeById,
+  hasFacilityNode,
+  branchPhaseInfo,
+  syncLegacyFacilities,
+  facilityEconomyStats
+} from '../data/facilitiesCatalog.js?v=20261022b';
 import { resolveResearch, resolveManufacture } from './rdEngine.js?v=20261022b';
 import { log, save } from './store.js?v=20261022b';
 
@@ -14,6 +20,7 @@ export const DAY = 86400000;
 export const toISO = ts => new Date(ts).toISOString().slice(0, 10);
 export const fromISO = iso => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
 export const addDays = (iso, n) => toISO(fromISO(iso) + n * DAY);
+export const daysBetween = (isoA, isoB) => Math.max(0, Math.round((fromISO(isoB) - fromISO(isoA)) / DAY));
 export const isMonday = iso => new Date(fromISO(iso)).getUTCDay() === 1;
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 export function prettyDate(iso) {
@@ -22,29 +29,34 @@ export function prettyDate(iso) {
   const suf = (day % 10 === 1 && day !== 11) ? 'st' : (day % 10 === 2 && day !== 12) ? 'nd' : (day % 10 === 3 && day !== 13) ? 'rd' : 'th';
   return `${day}${suf} ${MONTHS[d.getUTCMonth()]}`;
 }
-function seasonMondays() {  // Mondays from pre-season start to the finale — prorates the spec's per-race economy
-  let n = 0;
-  for (let d = '2026-02-23'; d <= '2026-12-06'; d = addDays(d, 7)) n++;
-  return n; // 41
-}
+
+export const SEASON_WEEKS = 38;
 
 // --- weekly tick ---------------------------------------------------------------
 export function weeklyTick(state) {
-  const weeks = seasonMondays();
-  let income = totalSponsorValue(state.teamId) * 0.40 / weeks;                 // 40% weekly bucket
+  const facStats = facilityEconomyStats(state);
+  const spEcon = computeSponsorEconomy(state.teamId, state.activeSponsors);
+  let sponsorWk = spEcon.weeklyIncomeM; // Active sponsors pay 100% weekly + 35% passive board retainer
+  let income = sponsorWk + facStats.commercialWkM;
   if (state.ownerBg === 'cfo') income *= 1.1;
-  const levels = Object.values(state.facilities).reduce((a, b) => a + b, 0);
-  const costs = 0.287 * (1 + 0.15 * (levels - 4));                  // draft scale — rises with facility level
-  let rp = 120 * 22 / weeks;                                       // 120/race facility generation, prorated
-  for (const lvl of Object.values(state.facilities)) rp += (lvl === 2 ? 25 : lvl === 3 ? 60 : 0) * 22 / weeks;
-  const power = teamById(state.teamId).carPower;                   // ATR anti-snowball (SPEC §6)
-  rp *= power <= 5 ? 1.15 : power >= 7 ? 0.90 : 1.0;
+
+  const costs = facStats.runningCostM; // $287k/wk at Basic -> $459k/wk at Advanced -> $602k/wk at Extensive
+  let rp = facStats.weeklyRp;          // 113 RP/wk at Basic -> 216 RP/wk at Advanced -> 305 RP/wk at Extensive
+  const power = teamById(state.teamId).carPower;
+  rp *= power <= 5 ? 1.15 : power >= 7 ? 0.90 : 1.0; // ATR anti-snowball
   if (state.ownerBg === 'head-engineer') rp *= 1.1;
   rp = Math.round(rp);
+
   state.cash = +(state.cash + income - costs).toFixed(2);
   state.rp += rp;
   log('weekly-tick', { income: +income.toFixed(2), costs: +costs.toFixed(2), rp });
-  return { type: 'tick', income, costs, rp };
+  return {
+    type: 'tick',
+    date: state.date,
+    income: +income.toFixed(2),
+    costs: +costs.toFixed(2),
+    rp
+  };
 }
 
 // --- agenda (visible = fixtures + tasks surfacing within the window) -----------
@@ -64,18 +76,52 @@ export function agenda(state, windowDays = 7) {
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-// --- facility purchases ------------------------------------------------------------
-export function queueFacility(state, facilityId, node, toLevel) {
-  if (state.cash < node.cost) return { error: `Not enough cash (need $${node.cost}M)` };
-  if (state.tasks.some(t => t.kind === 'facility' && t.facilityId === facilityId)) return { error: 'Upgrade already in progress' };
+// --- facility sub-upgrade purchases --------------------------------------------
+export function queueFacility(state, nodeIdOrBranchId, legacyNode, legacyToLevel) {
+  // Support both new single-arg queueFacility(state, nodeId) and legacy 3-arg calls
+  const node = facilityNodeById(nodeIdOrBranchId) || legacyNode;
+  if (!node) return { error: 'Unknown facility upgrade' };
+  const nodeId = node.id || nodeIdOrBranchId;
+
+  if (hasFacilityNode(state, nodeId)) return { error: 'Upgrade already completed' };
+  if (state.tasks.some(t => t.kind === 'facility' && (t.nodeId === nodeId || t.facilityId === nodeId))) {
+    return { error: 'This upgrade is already under construction' };
+  }
+
+  // Only allow 1 active construction per branch at a time
+  if (node.branchId && state.tasks.some(t => t.kind === 'facility' && t.branchId === node.branchId)) {
+    return { error: `Another ${node.branchName} upgrade is currently under construction` };
+  }
+
+  if (node.branchId && node.phase) {
+    const info = branchPhaseInfo(state, node.branchId);
+    if (node.phase > info.currentPhase) {
+      return { error: `Locked — complete all Phase ${node.phase - 1} ${node.branchName} sub-upgrades first` };
+    }
+  }
+
+  if (state.cash < node.cost) return { error: `Not enough cash (need $${node.cost.toFixed(2)}M, have $${state.cash.toFixed(2)}M)` };
   state.cash = +(state.cash - node.cost).toFixed(2);
-  const days = Math.round(node.days * (state.ownerBg === 'peoples-manager' ? 0.9 : 1));
+  const days = Math.max(3, Math.round(node.days * (state.ownerBg === 'peoples-manager' ? 0.9 : 1)));
   const due = addDays(state.date, days);
-  state.tasks.push({ id: 't' + Date.now(), kind: 'facility', facilityId, toLevel, due,
-                     title: 'Facility improvement', label: node.name });
-  log('facility-started', { facility: facilityId, toLevel, cost: node.cost, due });
+
+  state.tasks.push({
+    id: 'fac_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    kind: 'facility',
+    nodeId,
+    facilityId: node.branchId || nodeId,
+    branchId: node.branchId,
+    branchName: node.branchName,
+    phase: node.phase || legacyToLevel || 1,
+    started: state.date,
+    totalDays: days,
+    due,
+    title: `${node.branchName || 'Facility'} Upgrade`,
+    label: `${node.name} (Phase ${node.phase || 1})`
+  });
+  log('facility-started', { nodeId, branch: node.branchId, phase: node.phase, cost: node.cost, due });
   save();
-  return { ok: true, due };
+  return { ok: true, due, node };
 }
 
 // --- the clock -------------------------------------------------------------------
@@ -89,9 +135,22 @@ export function advance(state) {
     if (task.kind === 'research') fired.push(resolveResearch(state, task));
     else if (task.kind === 'manufacture') fired.push(resolveManufacture(state, task));
     else if (task.kind === 'facility') {
-      state.facilities[task.facilityId] = task.toLevel;
-      log('facility-complete', { facility: task.facilityId, level: task.toLevel });
-      fired.push({ type: 'facility', title: task.title, label: `Now Level ${task.toLevel}` });
+      if (!state.facilityNodes) state.facilityNodes = {};
+      const nodeId = task.nodeId || task.facilityId;
+      state.facilityNodes[nodeId] = true;
+      const node = facilityNodeById(nodeId);
+      if (node?.fanBonus) state.fanRating += node.fanBonus;
+      syncLegacyFacilities(state);
+      const info = node?.branchId ? branchPhaseInfo(state, node.branchId) : null;
+      const phaseUp = info && info.currentPhase > (task.phase || 1)
+        ? ` · ★ ${node.branchName.toUpperCase()} PHASE ${info.currentPhase} UNLOCKED!`
+        : '';
+      log('facility-complete', { nodeId, branch: task.branchId, phase: task.phase });
+      fired.push({
+        type: 'facility',
+        title: `Facility Built — ${node ? node.name : task.label}`,
+        label: `${node ? node.effects.join(' · ') : 'Upgrade operational'}${phaseUp}`
+      });
     }
   }
   if (isMonday(state.date)) fired.push(weeklyTick(state));

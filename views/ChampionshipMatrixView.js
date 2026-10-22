@@ -21,7 +21,11 @@ const RESERVE_POOL = ['T. Pourchaire', 'F. Vesti', 'P. Aron'];
 function logoHTML(team) {
   const src = logoOf(team);
   if (!src) return `<span class="mx-wordmark" style="color:${team.color}">${team.short}</span>`;
-  return `<span class="mx-logos"><img class="mx-logo" src="${src}" alt="${team.name} logo"></span>`;
+  const hasBg = Boolean(team.logoBg && !team.logoBlend);
+  const bgStyle = hasBg ? ` style="background:${team.logoBg}"` : '';
+  const wrapCls = `mx-logos${hasBg ? ' has-bg' : ''}${team.logoBlend ? ' is-blend' : ''}`;
+  const imgCls = `mx-logo${team.logoBlend ? ' blend' : ''}`;
+  return `<span class="${wrapCls}"${bgStyle}><img class="${imgCls}" src="${src}" alt="${team.name} logo"></span>`;
 }
 
 // Form comes from the driver's last LOGGED finish — nothing else. A driver

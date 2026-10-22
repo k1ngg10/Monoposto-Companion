@@ -31,7 +31,7 @@ const ribbonHTML = () => {
 };
 
 export function render(root) {
-  root.style.paddingLeft = '64px';   // room for the ribbon; main.js resets on route change
+  root.style.paddingLeft = 'clamp(42px, 7vw, 64px)';   // room for the ribbon; main.js resets on route change
   const s = getState();
   const race = CALENDAR.find(r => !s.results[r.round] && r.sun >= s.date) || CALENDAR.find(r => !s.results[r.round]);
   if (!race) {

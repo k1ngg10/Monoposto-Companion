@@ -1,5 +1,14 @@
 {
   "name": "monoposto-companion",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'Static site, no build needed'",
+    "lint": "echo 'No lint configured'"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  }
 }

@@ -61,14 +61,17 @@ route();
       close();
       location.hash = '#/matrix';
       route();
-    } catch { alert('That file is not a valid Monoposto save.'); }
-  });
-  document.getElementById('set-delete').addEventListener('click', () => {
-    close();
-    if (confirm('Delete this championship and start over with a new team? This cannot be undone — export a backup first if you want one.')) {
-      wipe();
-      location.hash = '#/start';
-      route();
+    } catch {
+      console.warn('Invalid Monoposto save file.');
     }
+  });
+  document.getElementById('set-delete').addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    close();
+    wipe();
+    document.documentElement.style.setProperty('--team', '#e10600');
+    if (location.hash === '#/start') route();
+    else location.hash = '#/start';
   });
 })();

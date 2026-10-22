@@ -17,11 +17,12 @@ const speedSum = t => driversOfTeam(t.id).reduce((a, d) => a + d.speed, 0);
 const ORDER = [...TEAMS].sort((a, b) => b.carPower - a.carPower || speedSum(b) - speedSum(a));
 const CUSTOMER_PUS = PU_SUPPLIERS.filter(p => p.id !== 'porsche');
 const PU_WELLS = {
-  mercedes: 'linear-gradient(160deg,#d9d9de,#8f8f96)',
+  mercedes: 'linear-gradient(160deg,#e4e6eb,#aeb3bc)',
+  porsche: 'linear-gradient(160deg,#fafaf7,#dcd9d0)',
   ferrari: 'linear-gradient(160deg,#33100f,#150707)',
   redbullford: 'linear-gradient(160deg,#1c2547,#0b0f22)',
   audi: 'linear-gradient(160deg,#2b2b30,#131316)',
-  honda: '#000'
+  honda: '#000000'
 };
 
 const W = { teamIdx: 0, puIdx: 0, team: null, bg: null, sponsors: [] };
@@ -40,7 +41,7 @@ function chosenPu() {
 function logoWell(team) {
   const src = logoOf(team);
   if (!src) return `<span class="wz-wellword" style="color:${team.color}">${team.short}</span>`;
-  return `<img class="wz-logo" src="${src}" alt="${team.name} logo">`;
+  return `<img class="wz-logo${team.logoBlend ? ' blend' : ''}" src="${src}" alt="${team.name} logo">`;
 }
 
 function teamCardHTML(team) {
@@ -49,7 +50,8 @@ function teamCardHTML(team) {
   const drv = d => `<div class="wz-drv"><span class="mx-num" style="background:${team.color}">${d.no}</span>
     <span class="wz-drvname"><span class="fn">${d.first}</span> <span class="ln">${d.last}</span></span>
     <span class="wz-drvstats">SPD <b>${d.speed}</b> · RSK <b>${d.risk}</b></span></div>`;
-  return `<div class="wz-well" style="background:linear-gradient(160deg, ${team.color}40, #101014 78%)">${logoWell(team)}</div>
+  const wellBg = team.wellBg || `linear-gradient(160deg, ${team.color}40, #101014 78%)`;
+  return `<div class="wz-well" style="background:${wellBg}">${logoWell(team)}</div>
     <div class="wz-cbody">
       <div class="wz-sname">${team.name.toUpperCase()}</div>
       <div class="wz-ssub">${tier.label} · ${team.works ? 'Works team — own PU' : 'Customer team'}</div>
@@ -64,7 +66,7 @@ function teamCardHTML(team) {
 
 function puCardHTML(pu, works) {
   return `<div class="wz-well" style="background:${PU_WELLS[pu.id] || `linear-gradient(160deg,#2b2b30,#131316)`}">
-      ${pu.logo ? `<img class="wz-logo pu" src="${pu.logo}" alt="${pu.name} logo">` : `<span class="wz-wellword">${pu.name.toUpperCase()}</span>`}</div>
+      ${pu.logo ? `<img class="wz-logo pu${pu.id === 'honda' ? ' blend' : ''}" src="${pu.logo}" alt="${pu.name} logo">` : `<span class="wz-wellword">${pu.name.toUpperCase()}</span>`}</div>
     <div class="wz-cbody">
       <div class="wz-sname">${pu.name.toUpperCase()}</div>
       <div class="wz-stat"><div class="wz-srow"><span class="wz-lbl">Performance</span><span class="wz-val">${pu.performance}</span></div>

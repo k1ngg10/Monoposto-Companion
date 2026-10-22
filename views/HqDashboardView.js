@@ -73,11 +73,14 @@ export function render(root) {
   root.querySelector('#imp').onclick = e => { e.preventDefault(); impFile.click(); };
   impFile.onchange = () => {
     const f = impFile.files[0]; if (!f) return;
-    f.text().then(t => { try { importJSON(t); location.reload(); } catch { alert('That file is not a valid save.'); } });
+    f.text().then(t => { try { importJSON(t); location.reload(); } catch { console.warn('Invalid save file.'); } });
   };
   root.querySelector('#wipe').onclick = e => {
     e.preventDefault();
-    if (confirm('Delete this championship save? This cannot be undone.')) { wipe(); location.hash = '#/start'; location.reload(); }
+    stop();
+    wipe();
+    document.documentElement.style.setProperty('--team', '#e10600');
+    location.hash = '#/start';
   };
 
   function setCtl(t) { const el = document.getElementById('ctl-label'); if (el) el.textContent = t; }

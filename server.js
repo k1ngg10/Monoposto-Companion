@@ -8,14 +8,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-app.use((_req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+app.use((req, res, next) => {
+  if (req.path.startsWith('/assets/') || req.path.endsWith('.svg') || req.path.endsWith('.woff2') || req.path.endsWith('.ttf')) {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  } else {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
   next();
 });
 
-app.use(express.static(__dirname, { etag: false, lastModified: false, maxAge: 0 }));
+app.use(express.static(__dirname));
 
 app.use((_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

@@ -1,8 +1,9 @@
 // RACE ENGINE — Full 24-Driver Qualifying & Grand Prix Classification, Official F1 Points,
 // FIA Prize Purse & Telemetry RP, Fan Rating Progression, R7/R14 ATR Resets, and
 // Deterministic 24-Driver Speed & Risk Evolution.
+import { CALENDAR } from '../data/calendar2026.js?v=20261022m';
 import { TEAMS, activeDrivers, driversOfTeam, teamById, driverById } from '../data/teamsAndDrivers.js?v=20261022m';
-import { computeSponsorEconomy, sponsorsOfTeam } from '../data/sponsorsAndEngines.js?v=20261022m';
+import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022m';
 import { facilityEconomyStats, hasFacilityNode } from '../data/facilitiesCatalog.js?v=20261022m';
 import { recalculateAtrMultipliers } from './aiRdEngine.js?v=20261022m';
 import { log, ensureDriverAndSyncState, teamMonopostoPower } from './store.js?v=20261022m';
@@ -56,6 +57,38 @@ function nonPointsClassificationReward(pos) {
   return { cashM, rp };
 }
 
+// Depletes active temporary Spec Upgrade effects by 1 race as rival teams catch up
+export function depleteSpecUpgradeEffects(state) {
+  if (!state.specEffects || typeof state.specEffects !== 'object') return [];
+  const [d1, d2] = driversOfTeam(state.teamId, state);
+  const events = [];
+
+  for (const [slot, drv] of [['car1', d1], ['car2', d2]]) {
+    const eff = state.specEffects[slot];
+    if (!eff || eff.racesLeft <= 0) continue;
+    eff.racesLeft -= 1;
+    if (eff.racesLeft <= 0) {
+      if (eff.outcome === 'optimal') {
+        events.push({
+          driver: drv,
+          speedDelta: 0,
+          riskDelta: 0,
+          reason: `${eff.partName} Spec Surge Depleted (Rivals caught up after ${eff.maxRaces} race${eff.maxRaces === 1 ? '' : 's'} — revert Speed slider)`
+        });
+      } else if (eff.outcome === 'problematic') {
+        events.push({
+          driver: drv,
+          speedDelta: 0,
+          riskDelta: 0,
+          reason: `${eff.partName} Correlation Issue Resolved by Crew (Speed restored to baseline)`
+        });
+      }
+      state.specEffects[slot] = null;
+    }
+  }
+  return events;
+}
+
 // Deterministic 24-Driver Speed (1-10) & Risk (1-10) Evolution Engine
 export function evaluateDriverEvolution(state, upToRound) {
   ensureDriverAndSyncState(state);
@@ -90,6 +123,7 @@ export function evaluateDriverEvolution(state, upToRound) {
     const prevRiskDelta = ds.riskDelta || 0;
     const teamPwr = teamMonopostoPower(drv.team, state);
     const [expTop, expBottom] = expectedDriverBand(teamPwr);
+    const isProtected = drv.pedigree === 'champion' || drv.pedigree === 'franchise' || (drv.titles || 0) >= 1;
 
     // --- 1. DRIVER SPEED (Momentum Form: Hot Streak +1 / Cold Slump -1) ---
     let newSpeedDelta = 0;
@@ -97,9 +131,9 @@ export function evaluateDriverEvolution(state, upToRound) {
     if (has3Races) {
       const finishes = last3Rounds.map(r => state.results[r]?.entries?.[drv.id] ?? null);
       const allHot = finishes.every(pos => pos !== null && pos <= Math.max(1, expTop - 3));
-      const allCold = finishes.every(pos => pos === null || pos >= Math.min(24, expBottom + 4));
+      const allCold = !isProtected && finishes.every(pos => pos === null || pos >= Math.min(24, expBottom + 4));
 
-      if (allHot) {
+      if (allHot && (ds.baseSpeed || drv.speed) < 9) {
         newSpeedDelta = 1;
         newSpeedReason = `Hot Streak: 3 races ≥3 pos above Power ${teamPwr} expectation`;
       } else if (allCold) {
@@ -110,7 +144,7 @@ export function evaluateDriverEvolution(state, upToRound) {
     ds.speedDelta = newSpeedDelta;
     ds.speedReason = newSpeedReason;
 
-    // --- 2. DRIVER RISK (Title Attack, H2H / Hot Seat, Crash Cooldown, Safe Lead) ---
+    // --- 2. DRIVER RISK (Title Attack, Monoposto Low-Risk Overtaking Calibration, Rookie Hot-Seat, Crash Cooldown) ---
     let newRiskDelta = 0;
     let newRiskReason = '';
 
@@ -129,7 +163,6 @@ export function evaluateDriverEvolution(state, upToRound) {
       newRiskDelta = -1;
       newRiskReason = `Championship Control: 40+ pt lead safe mode (−1 Risk)`;
     } else {
-      // Check Championship Contender Desperation (+1 Risk) in second half of season (or after 4+ logged rounds)
       const myPts = state.points[drv.id] || 0;
       const myRank = rankOf(drv.id);
       const gapToLeader = leaderPts - myPts;
@@ -139,7 +172,8 @@ export function evaluateDriverEvolution(state, upToRound) {
       const mates = driversOfTeam(drv.team, state);
       const mate = mates.find(m => m.id !== drv.id);
       const matePts = mate ? (state.points[mate.id] || 0) : 0;
-      const under35Pct = matePts >= 10 && myPts < 0.35 * matePts;
+      const isRookie = drv.pedigree === 'rookie' || (drv.age || 25) <= 23;
+      const under35Pct = !isProtected && isRookie && loggedRounds.length >= 4 && matePts >= 10 && myPts < 0.45 * matePts;
 
       let lostLast3H2H = false;
       if (has3Races && mate) {
@@ -153,12 +187,16 @@ export function evaluateDriverEvolution(state, upToRound) {
       if (isSecondHalf && (myRank <= 4 || teamPwr >= 7) && drv.id !== leaderId && gapToLeader >= 10 && gapToLeader <= 45) {
         newRiskDelta = 1;
         newRiskReason = `Title Attack Mode: P${myRank} trailing leader by ${gapToLeader} pts (+1 Risk)`;
+      } else if (lostLast3H2H && (drv.risk || 6) <= 6 && mate && (mate.risk || 6) >= (drv.risk || 6)) {
+        // Low-Risk Veteran / Champion in Monoposto trailing a higher-risk teammate -> calibrate Risk +1 for overtaking
+        newRiskDelta = 1;
+        newRiskReason = `Monoposto Racecraft Calibration: +1 Risk to counter traffic handicap vs ${mate.last}`;
       } else if (under35Pct) {
         newRiskDelta = 1;
-        newRiskReason = `Hot-Seat Urgency: Under 35% of teammate ${mate.last}'s points (+1 Risk)`;
+        newRiskReason = `Rookie Seat Urgency: Trailing veteran teammate ${mate.last} (+1 Risk)`;
       } else if (lostLast3H2H) {
         newRiskDelta = 1;
-        newRiskReason = `Teammate H2H Pressure: Lost 3 straight races to ${mate.last} (+1 Risk)`;
+        newRiskReason = `Teammate H2H Push: Lost 3 straight races to ${mate.last} (+1 Risk)`;
       }
     }
 
@@ -181,6 +219,7 @@ export function evaluateDriverEvolution(state, upToRound) {
 // Logs full 24-driver Grand Prix results, points, FIA Prize Cash, Telemetry RP, and Fan Rating
 export function logResult(state, round, entries, conditions, laps, extras = {}) {
   ensureDriverAndSyncState(state);
+  const isFirstLogForRound = !state.results[round];
 
   // If re-logging an already logged round, reverse its previous points, cash, RP, and Fan Rating first
   if (state.results[round]) {
@@ -314,6 +353,12 @@ export function logResult(state, round, entries, conditions, laps, extras = {}) 
     fanReasons
   };
 
+  // Sync calendar date to Sunday of the completed Grand Prix if currently on Qualifying Saturday
+  const calRace = CALENDAR.find(r => r.round === round);
+  if (calRace && state.date === calRace.sat) {
+    state.date = calRace.sun;
+  }
+
   state.results[round] = {
     entries,
     gaps,
@@ -324,8 +369,10 @@ export function logResult(state, round, entries, conditions, laps, extras = {}) 
     rewards
   };
 
-  // 4. Evaluate 24-Driver Speed & Risk Evolution
-  const driverShifts = evaluateDriverEvolution(state, round);
+  // 4. Deplete temporary Spec Upgrade boosts (1-2 races for lower teams, 2-3 for top teams) & evaluate 24-Driver Evolution
+  const specEvents = isFirstLogForRound ? depleteSpecUpgradeEffects(state) : [];
+  const evoShifts = evaluateDriverEvolution(state, round);
+  const driverShifts = [...specEvents, ...evoShifts];
 
   // 5. Trigger FIA ATR Wind Tunnel Reset at Round 7 (Canada) & Round 14 (Netherlands)
   let atrResetTable = null;

@@ -65,40 +65,40 @@ export const FACTORY_HQ_DIRECTORY = {
   bmw:      'Munich, Bavaria, Germany'
 };
 
-// speed / risk are Monoposto integers (SPEC §5 canon). age is included for
-// veteran retirement evaluation and driver dossiers.
+// speed / risk are Monoposto integers (SPEC §5 canon). age, pedigree, titles, and
+// tenureYears govern realistic seat security, champion immunity, and retirement checks.
 export const DRIVERS = [
-  { id: 'JAN', name: 'Shashwat Jangid',       first: 'Shashwat',    last: 'JANGID',     no: 17, team: 'porsche',  speed: 6, risk: 5, age: 22, salaryM: 1.2 },
-  { id: 'JUN', name: 'Jun-seo Han',           first: 'Jun-seo',     last: 'HAN',        no: 88, team: 'porsche',  speed: 7, risk: 5, age: 23, salaryM: 1.6 },
-  { id: 'VER', name: 'Max Verstappen',        first: 'Max',         last: 'VERSTAPPEN', no: 1,  team: 'redbull',  speed: 9, risk: 7, age: 28, salaryM: 6.5 },
-  { id: 'HAD', name: 'Isack Hadjar',          first: 'Isack',       last: 'HADJAR',     no: 6,  team: 'redbull',  speed: 8, risk: 8, age: 21, salaryM: 2.2 },
-  { id: 'LEC', name: 'Charles Leclerc',       first: 'Charles',     last: 'LECLERC',    no: 16, team: 'ferrari',  speed: 8, risk: 7, age: 28, salaryM: 5.0 },
-  { id: 'HAM', name: 'Lewis Hamilton',        first: 'Lewis',       last: 'HAMILTON',   no: 44, team: 'ferrari',  speed: 9, risk: 6, age: 41, salaryM: 6.0 },
-  { id: 'NOR', name: 'Lando Norris',          first: 'Lando',       last: 'NORRIS',     no: 4,  team: 'mclaren',  speed: 8, risk: 6, age: 26, salaryM: 4.8 },
-  { id: 'PIA', name: 'Oscar Piastri',         first: 'Oscar',       last: 'PIASTRI',    no: 81, team: 'mclaren',  speed: 7, risk: 6, age: 25, salaryM: 3.4 },
-  { id: 'RUS', name: 'George Russell',        first: 'George',      last: 'RUSSELL',    no: 63, team: 'mercedes', speed: 8, risk: 6, age: 28, salaryM: 4.6 },
-  { id: 'ANT', name: 'Andrea Kimi Antonelli', first: 'Andrea Kimi', last: 'ANTONELLI',  no: 12, team: 'mercedes', speed: 8, risk: 8, age: 19, salaryM: 2.4 },
-  { id: 'ZHO', name: 'Guanyu Zhou',           first: 'Guanyu',      last: 'ZHOU',       no: 24, team: 'byd',      speed: 7, risk: 5, age: 26, salaryM: 2.0 },
-  { id: 'YIF', name: 'Ye Yifei',              first: 'Yifei',       last: 'YE',         no: 83, team: 'byd',      speed: 7, risk: 6, age: 25, salaryM: 1.8 },
-  { id: 'HUL', name: 'Nico Hülkenberg',       first: 'Nico',        last: 'HÜLKENBERG', no: 27, team: 'audi',     speed: 8, risk: 4, age: 39, salaryM: 3.0 },
-  { id: 'BOR', name: 'Gabriel Bortoleto',     first: 'Gabriel',     last: 'BORTOLETO',  no: 5,  team: 'audi',     speed: 8, risk: 6, age: 21, salaryM: 2.1 },
-  { id: 'WEB', name: 'Florian Weber',         first: 'Florian',     last: 'WEBER',      no: 20, team: 'bmw',      speed: 7, risk: 5, age: 24, salaryM: 1.5 },
-  { id: 'ROS', name: 'Mateo Rossi',           first: 'Mateo',       last: 'ROSSI',      no: 19, team: 'bmw',      speed: 8, risk: 8, age: 20, salaryM: 1.9 },
-  { id: 'ALO', name: 'Fernando Alonso',       first: 'Fernando',    last: 'ALONSO',     no: 14, team: 'aston',    speed: 8, risk: 7, age: 45, salaryM: 4.5 },
-  { id: 'STR', name: 'Lance Stroll',          first: 'Lance',       last: 'STROLL',     no: 18, team: 'aston',    speed: 7, risk: 6, age: 27, salaryM: 2.2 },
-  { id: 'PER', name: 'Sergio Pérez',          first: 'Sergio',      last: 'PÉREZ',      no: 11, team: 'cadillac', speed: 8, risk: 5, age: 36, salaryM: 3.2 },
-  { id: 'BOT', name: 'Valtteri Bottas',       first: 'Valtteri',    last: 'BOTTAS',     no: 77, team: 'cadillac', speed: 8, risk: 5, age: 37, salaryM: 3.0 },
-  { id: 'ALB', name: 'Alexander Albon',       first: 'Alexander',   last: 'ALBON',      no: 23, team: 'williams', speed: 8, risk: 6, age: 30, salaryM: 3.2 },
-  { id: 'SAI', name: 'Carlos Sainz',          first: 'Carlos',      last: 'SAINZ',      no: 55, team: 'williams', speed: 8, risk: 6, age: 31, salaryM: 3.8 },
-  { id: 'OCO', name: 'Esteban Ocon',          first: 'Esteban',     last: 'OCON',       no: 31, team: 'haas',     speed: 8, risk: 7, age: 29, salaryM: 2.6 },
-  { id: 'BEA', name: 'Oliver Bearman',        first: 'Oliver',      last: 'BEARMAN',    no: 87, team: 'haas',     speed: 8, risk: 7, age: 20, salaryM: 2.0 }
+  { id: 'JAN', name: 'Shashwat Jangid',       first: 'Shashwat',    last: 'JANGID',     no: 17, team: 'porsche',  speed: 6, risk: 5, age: 22, salaryM: 1.2, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'JUN', name: 'Jun-seo Han',           first: 'Jun-seo',     last: 'HAN',        no: 88, team: 'porsche',  speed: 7, risk: 5, age: 23, salaryM: 1.6, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'VER', name: 'Max Verstappen',        first: 'Max',         last: 'VERSTAPPEN', no: 1,  team: 'redbull',  speed: 9, risk: 7, age: 28, salaryM: 6.5, pedigree: 'champion',    titles: 4, tenureYears: 11 },
+  { id: 'HAD', name: 'Isack Hadjar',          first: 'Isack',       last: 'HADJAR',     no: 6,  team: 'redbull',  speed: 8, risk: 8, age: 21, salaryM: 2.2, pedigree: 'rookie',      titles: 0, tenureYears: 1 },
+  { id: 'LEC', name: 'Charles Leclerc',       first: 'Charles',     last: 'LECLERC',    no: 16, team: 'ferrari',  speed: 8, risk: 7, age: 28, salaryM: 5.0, pedigree: 'franchise',   titles: 0, tenureYears: 8 },
+  { id: 'HAM', name: 'Lewis Hamilton',        first: 'Lewis',       last: 'HAMILTON',   no: 44, team: 'ferrari',  speed: 9, risk: 6, age: 41, salaryM: 6.0, pedigree: 'champion',    titles: 7, tenureYears: 2 },
+  { id: 'NOR', name: 'Lando Norris',          first: 'Lando',       last: 'NORRIS',     no: 4,  team: 'mclaren',  speed: 8, risk: 6, age: 26, salaryM: 4.8, pedigree: 'franchise',   titles: 0, tenureYears: 8 },
+  { id: 'PIA', name: 'Oscar Piastri',         first: 'Oscar',       last: 'PIASTRI',    no: 81, team: 'mclaren',  speed: 7, risk: 6, age: 25, salaryM: 3.4, pedigree: 'established', titles: 0, tenureYears: 4 },
+  { id: 'RUS', name: 'George Russell',        first: 'George',      last: 'RUSSELL',    no: 63, team: 'mercedes', speed: 8, risk: 6, age: 28, salaryM: 4.6, pedigree: 'franchise',   titles: 0, tenureYears: 5 },
+  { id: 'ANT', name: 'Andrea Kimi Antonelli', first: 'Andrea Kimi', last: 'ANTONELLI',  no: 12, team: 'mercedes', speed: 8, risk: 8, age: 19, salaryM: 2.4, pedigree: 'rookie',      titles: 0, tenureYears: 1 },
+  { id: 'ZHO', name: 'Guanyu Zhou',           first: 'Guanyu',      last: 'ZHOU',       no: 24, team: 'byd',      speed: 7, risk: 5, age: 26, salaryM: 2.0, pedigree: 'established', titles: 0, tenureYears: 3 },
+  { id: 'YIF', name: 'Ye Yifei',              first: 'Yifei',       last: 'YE',         no: 83, team: 'byd',      speed: 7, risk: 6, age: 25, salaryM: 1.8, pedigree: 'rookie',      titles: 0, tenureYears: 1 },
+  { id: 'HUL', name: 'Nico Hülkenberg',       first: 'Nico',        last: 'HÜLKENBERG', no: 27, team: 'audi',     speed: 8, risk: 4, age: 39, salaryM: 3.0, pedigree: 'established', titles: 0, tenureYears: 3 },
+  { id: 'BOR', name: 'Gabriel Bortoleto',     first: 'Gabriel',     last: 'BORTOLETO',  no: 5,  team: 'audi',     speed: 8, risk: 6, age: 21, salaryM: 2.1, pedigree: 'rookie',      titles: 0, tenureYears: 1 },
+  { id: 'WEB', name: 'Florian Weber',         first: 'Florian',     last: 'WEBER',      no: 20, team: 'bmw',      speed: 7, risk: 5, age: 24, salaryM: 1.5, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'ROS', name: 'Mateo Rossi',           first: 'Mateo',       last: 'ROSSI',      no: 19, team: 'bmw',      speed: 8, risk: 8, age: 20, salaryM: 1.9, pedigree: 'rookie',      titles: 0, tenureYears: 1 },
+  { id: 'ALO', name: 'Fernando Alonso',       first: 'Fernando',    last: 'ALONSO',     no: 14, team: 'aston',    speed: 8, risk: 7, age: 45, salaryM: 4.5, pedigree: 'champion',    titles: 2, tenureYears: 4 },
+  { id: 'STR', name: 'Lance Stroll',          first: 'Lance',       last: 'STROLL',     no: 18, team: 'aston',    speed: 7, risk: 6, age: 27, salaryM: 2.2, pedigree: 'franchise',   titles: 0, tenureYears: 8 },
+  { id: 'PER', name: 'Sergio Pérez',          first: 'Sergio',      last: 'PÉREZ',      no: 11, team: 'cadillac', speed: 8, risk: 5, age: 36, salaryM: 3.2, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'BOT', name: 'Valtteri Bottas',       first: 'Valtteri',    last: 'BOTTAS',     no: 77, team: 'cadillac', speed: 8, risk: 5, age: 37, salaryM: 3.0, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'ALB', name: 'Alexander Albon',       first: 'Alexander',   last: 'ALBON',      no: 23, team: 'williams', speed: 8, risk: 6, age: 30, salaryM: 3.2, pedigree: 'established', titles: 0, tenureYears: 5 },
+  { id: 'SAI', name: 'Carlos Sainz',          first: 'Carlos',      last: 'SAINZ',      no: 55, team: 'williams', speed: 8, risk: 6, age: 31, salaryM: 3.8, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'OCO', name: 'Esteban Ocon',          first: 'Esteban',     last: 'OCON',       no: 31, team: 'haas',     speed: 8, risk: 7, age: 29, salaryM: 2.6, pedigree: 'established', titles: 0, tenureYears: 2 },
+  { id: 'BEA', name: 'Oliver Bearman',        first: 'Oliver',      last: 'BEARMAN',    no: 87, team: 'haas',     speed: 8, risk: 7, age: 20, salaryM: 2.0, pedigree: 'rookie',      titles: 0, tenureYears: 1 }
 ];
 
 // FIA F2 / Official Reserve Driver Pool (Rule 3 — available for promotion & contract signings)
 export const RESERVE_DRIVERS = [
-  { id: 'POU', name: 'Théo Pourchaire', first: 'Théo',     last: 'POURCHAIRE', no: 98, team: null, speed: 7, risk: 7, age: 22, salaryM: 1.1, isReserve: true, bio: 'FIA Formula 2 Champion · Reserve Pool' },
-  { id: 'VES', name: 'Frederik Vesti',  first: 'Frederik', last: 'VESTI',      no: 99, team: null, speed: 7, risk: 6, age: 24, salaryM: 1.0, isReserve: true, bio: 'F2 Vice-Champion · Simulator & Reserve Pool' },
-  { id: 'ARO', name: 'Paul Aron',       first: 'Paul',     last: 'ARON',       no: 97, team: null, speed: 7, risk: 8, age: 22, salaryM: 1.0, isReserve: true, bio: 'F2 Rookie Podium Contender · Reserve Pool' }
+  { id: 'POU', name: 'Théo Pourchaire', first: 'Théo',     last: 'POURCHAIRE', no: 98, team: null, speed: 7, risk: 7, age: 22, salaryM: 1.1, pedigree: 'rookie', titles: 0, tenureYears: 0, isReserve: true, bio: 'FIA Formula 2 Champion · Reserve Pool' },
+  { id: 'VES', name: 'Frederik Vesti',  first: 'Frederik', last: 'VESTI',      no: 99, team: null, speed: 7, risk: 6, age: 24, salaryM: 1.0, pedigree: 'rookie', titles: 0, tenureYears: 0, isReserve: true, bio: 'F2 Vice-Champion · Simulator & Reserve Pool' },
+  { id: 'ARO', name: 'Paul Aron',       first: 'Paul',     last: 'ARON',       no: 97, team: null, speed: 7, risk: 8, age: 22, salaryM: 1.0, pedigree: 'rookie', titles: 0, tenureYears: 0, isReserve: true, bio: 'F2 Rookie Podium Contender · Reserve Pool' }
 ];
 
 export const teamById = id => TEAMS.find(t => t.id === id);

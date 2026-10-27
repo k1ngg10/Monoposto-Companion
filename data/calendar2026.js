@@ -29,5 +29,15 @@ export const CALENDAR = [
 ];
 
 export const raceByRound = r => CALENDAR.find(x => x.round === r);
-export function nextRace(isoDate) { return CALENDAR.find(r => r.sun >= isoDate) || null; }
+export function nextUnloggedRace(state) {
+  if (!state) return CALENDAR[0];
+  return CALENDAR.find(r => !state.results?.[r.round]) || null;
+}
+export function nextRace(isoDate, state = null) {
+  if (state && state.results) {
+    const unlogged = CALENDAR.find(r => !state.results[r.round]);
+    if (unlogged) return unlogged;
+  }
+  return CALENDAR.find(r => r.sun >= isoDate) || null;
+}
 export function raceOn(isoDate) { return CALENDAR.find(r => r.sat === isoDate || r.sun === isoDate) || null; }

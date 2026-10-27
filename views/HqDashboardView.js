@@ -13,8 +13,8 @@ import {
   driverPriorityStatus,
   unmanufacturedBlueprints
 } from '../engine/store.js?v=20261022m';
-import { advance, agenda, prettyDate, fromISO, queueFacility } from '../engine/timeEngine.js?v=20261022m';
-import { nextRace, CALENDAR } from '../data/calendar2026.js?v=20261022m';
+import { advance, agenda, prettyDate, fromISO, queueFacility, canAdvanceCalendar } from '../engine/timeEngine.js?v=20261022m';
+import { nextRace, nextUnloggedRace, CALENDAR } from '../data/calendar2026.js?v=20261022m';
 import { teamById } from '../data/teamsAndDrivers.js?v=20261022m';
 import { puById, puContractCost, computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022m';
 import {
@@ -36,7 +36,7 @@ import { topbarHTML, refreshHUD, floater, fmt$, openDeleteConfirmModal } from '.
 let running = false;
 let rafId = null;
 let dayStartTs = 0;
-const DAY_SWEEP_MS = 620; // 1 full 360° clockwise green sweep revolution = 1 day
+const DAY_SWEEP_MS = 1450; // Deliberate day-by-day pace (~1.45s per day) so player can stop on any day
 
 let drawerMode = null; // null | 'research' | 'manufacture' | 'facility'
 let drawerMsg = '', drawerErr = false;
@@ -77,7 +77,7 @@ function seasonLabel(s) {
   const yr = (s.season || 1) === 1 ? '2026' : '2027';
   const hqCity = teamById(s.teamId)?.hq || 'Factory';
   if (s.date < CALENDAR[0].sat) return `Pre-season · ${yr} · ${hqCity} HQ`;
-  const nr = nextRace(s.date);
+  const nr = nextRace(s.date, s);
   return `Season ${s.season || 1} (${yr}) · Round ${nr ? nr.round : 22} of 22 · ${hqCity} HQ`;
 }
 
@@ -99,9 +99,14 @@ function taskProgressPct(s, task) {
   return Math.min(98, Math.max(8, Math.round((elapsed / total) * 100)));
 }
 
-// Finds any unlogged race weekend that has arrived (or where Qualifying was logged/skipped and GP is still pending)
+// Finds the earliest unlogged race weekend if the calendar has reached its Saturday (or Qualifying is logged)
 function activeRaceStop(s) {
-  return CALENDAR.find(r => !s.results?.[r.round] && (r.sat <= s.date || Boolean(s.qualifying?.[r.round]))) || null;
+  const pending = nextUnloggedRace(s);
+  if (!pending) return null;
+  if (s.date >= pending.sat || Boolean(s.quali?.[pending.round] || s.qualifying?.[pending.round])) {
+    return pending;
+  }
+  return null;
 }
 
 export function render(root) {
@@ -116,6 +121,7 @@ export function render(root) {
   const { ord, month } = dateParts(s.date);
   const bgUrl = FACILITY_BACKDROPS.hq;
   const isDay1 = s.date === '2026-02-20' && Object.keys(s.results || {}).length === 0;
+  const gate = canAdvanceCalendar(s);
 
   root.innerHTML = `
     <div class="hq-shell" style="--hq-bg: url('${bgUrl}')">
@@ -144,14 +150,15 @@ export function render(root) {
               <div class="f1-reticle-sweep" aria-hidden="true"></div>
               <div class="f1-reticle-track" aria-hidden="true"></div>
               <div class="f1-reticle-core">
-                <span class="f1-reticle-glyph" id="ring-glyph">▶</span>
+                <span class="f1-reticle-glyph" id="ring-glyph">${gate.ok ? '▶' : '⚑'}</span>
               </div>
             </div>
-            <div class="ctl-label" id="ctl-label">ADVANCE TIME</div>
+            <div class="ctl-label" id="ctl-label">${gate.ok ? 'ADVANCE TIME' : `LOG R${gate.blockedByRace.round} FIRST`}</div>
           </div>
           <div id="nodes"></div>
-          <div class="btnrow" style="margin:16px 0 8px">
-            <button class="btn" id="advance">▶ ADVANCE</button>
+          <div class="btnrow" style="margin:16px 0 8px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="advance" style="flex:1">${gate.ok ? '▶ AUTO ADVANCE' : `⚑ LOG R${gate.blockedByRace.round} TO ADVANCE`}</button>
+            <button class="btn" id="step-one-day" title="Advance exactly 1 calendar day" ${gate.ok ? '' : 'disabled'}>+1 DAY</button>
           </div>
         </div>
 
@@ -167,7 +174,7 @@ export function render(root) {
                 <div class="card pos feed-day1-card"><div><div class="ct">Sponsor Signing Bonus</div><div class="cs">${team.name} sponsor package — Day 1 payout (+$${spEcon.weeklyIncomeK}k/wk recurring)</div></div><div class="amt pos">+${fmt$(signingCash)}</div></div>
                 <div class="card neg feed-day1-card"><div><div class="ct">Power Unit — ${pu ? pu.name : 'In-House'}</div><div class="cs">${team.works ? 'In-House Works PU R&D & Dyno Cap Allocation' : 'Customer engine supply contract'} — deducted from bank</div></div><div class="amt neg">−${fmt$(puCost)}</div></div>
               ` : ''}
-              <div class="hint" id="hint">Hit <b>ADVANCE</b> (or click the circular reticle) to roll the calendar forward. Weekly Monday income/costs and 11-team AI background R&amp;D update automatically, and advancing pauses on Race Weekends.</div>
+              <div class="hint" id="hint">Use <b>▶ AUTO ADVANCE</b> (day-by-day sweep) or <b>+1 DAY</b> (single-day step) to roll the calendar forward. Advancing automatically pauses on task completions and locks on Race Weekends until results are logged.</div>
             </div>
           </div>
         </div>
@@ -192,33 +199,78 @@ export function render(root) {
   renderDrawer();
   bindStaticControls();
 
-  function toggleAdvance() {
+  function syncClockButtons() {
+    const st = getState();
+    const g = canAdvanceCalendar(st);
     const btn = root.querySelector('#advance');
-    const ring = document.getElementById('ring');
+    const stepBtn = root.querySelector('#step-one-day');
     const glyph = document.getElementById('ring-glyph');
-    if (running) {
-      stop();
+    if (!g.ok) {
       if (btn) {
-        btn.textContent = '▶ ADVANCE';
+        btn.textContent = `⚑ LOG R${g.blockedByRace.round} TO ADVANCE`;
+        btn.classList.remove('stop');
+      }
+      if (stepBtn) stepBtn.disabled = true;
+      if (glyph) glyph.textContent = '⚑';
+      setCtl(`LOG R${g.blockedByRace.round} FIRST`);
+      return;
+    }
+    if (stepBtn) stepBtn.disabled = running;
+    if (running) {
+      if (btn) {
+        btn.textContent = '■ STOP';
+        btn.classList.add('stop');
+      }
+      if (glyph) glyph.textContent = '■';
+      setCtl('STOP ADVANCING');
+    } else {
+      if (btn) {
+        btn.textContent = '▶ AUTO ADVANCE';
         btn.classList.remove('stop');
       }
       if (glyph) glyph.textContent = '▶';
       setCtl('ADVANCE TIME');
+    }
+  }
+
+  function toggleAdvance() {
+    const st = getState();
+    const g = canAdvanceCalendar(st);
+    if (!g.ok) {
+      stop();
+      syncClockButtons();
+      renderRaceHero(g.blockedByRace);
+      pushFeedItem(`<div class="banner red feed-event-banner"><div class="bt">Race Weekend Lock — Round ${g.blockedByRace.round} ${g.blockedByRace.gp}</div><div class="bs">${g.reason}</div></div>`, false);
+      return;
+    }
+    const ring = document.getElementById('ring');
+    if (running) {
+      stop();
+      syncClockButtons();
       return;
     }
     running = true;
-    if (btn) {
-      btn.textContent = '■ STOP';
-      btn.classList.add('stop');
-    }
     if (ring) {
       ring.classList.add('is-advancing');
       ring.style.setProperty('--sweep-deg', '0deg');
     }
-    if (glyph) glyph.textContent = '■';
-    setCtl('STOP ADVANCING');
+    syncClockButtons();
     dayStartTs = performance.now();
     rafId = requestAnimationFrame(tickSweep);
+  }
+
+  function stepSingleDay() {
+    if (running) stop();
+    const st = getState();
+    const g = canAdvanceCalendar(st);
+    if (!g.ok) {
+      syncClockButtons();
+      renderRaceHero(g.blockedByRace);
+      pushFeedItem(`<div class="banner red feed-event-banner"><div class="bt">Race Weekend Lock — Round ${g.blockedByRace.round} ${g.blockedByRace.gp}</div><div class="bs">${g.reason}</div></div>`, false);
+      return;
+    }
+    stepDay(true);
+    syncClockButtons();
   }
 
   function tickSweep(now) {
@@ -228,7 +280,7 @@ export function render(root) {
     if (elapsed >= DAY_SWEEP_MS) {
       dayStartTs = now - ((elapsed - DAY_SWEEP_MS) % DAY_SWEEP_MS);
       if (ring) ring.style.setProperty('--sweep-deg', '0deg');
-      const keepGoing = stepDay();
+      const keepGoing = stepDay(false);
       if (!keepGoing || !running) return;
     } else {
       const deg = (elapsed / DAY_SWEEP_MS) * 360;
@@ -240,6 +292,9 @@ export function render(root) {
   function bindStaticControls() {
     const btn = root.querySelector('#advance');
     if (btn) btn.onclick = toggleAdvance;
+
+    const stepBtn = root.querySelector('#step-one-day');
+    if (stepBtn) stepBtn.onclick = stepSingleDay;
 
     const ctlRow = root.querySelector('#ctl-row');
     if (ctlRow) {
@@ -325,14 +380,15 @@ export function render(root) {
       return;
     }
     const pending = unmanufacturedBlueprints(st);
-    const qState = st.qualifying?.[race.round] || null;
+    const qState = st.quali?.[race.round] || st.qualifying?.[race.round] || null;
     const qualiDone = Boolean(qState);
     const stageEyebrow = qualiDone
-      ? `RACE WEEKEND IN PROGRESS · ROUND ${race.round} OF 22 · ${qState.skipped ? 'QUALIFYING SKIPPED' : 'QUALIFYING LOGGED'}`
-      : `RACE WEEKEND ARRIVED · ROUND ${race.round} OF 22 · STAGE 1: QUALIFYING SESSION`;
+      ? `RACE WEEKEND LOCKED · ROUND ${race.round} OF 22 · ${qState.skipped ? 'QUALIFYING SKIPPED' : 'QUALIFYING LOGGED'} — LOG GRAND PRIX TO ADVANCE`
+      : `RACE WEEKEND ARRIVED · ROUND ${race.round} OF 22 · STAGE 1: QUALIFYING SESSION (CALENDAR HELD)`;
     const ctaLabel = qualiDone
-      ? 'CONTINUE TO GRAND PRIX →'
+      ? 'LOG GRAND PRIX RESULTS →'
       : 'GO TO QUALIFYING SESSION →';
+    const dateOvershoot = st.date > race.sun;
 
     slot.innerHTML = `
       <div class="hq-race-stop-card">
@@ -341,10 +397,16 @@ export function render(root) {
           <div>
             <div class="hq-race-eyebrow">${stageEyebrow}</div>
             <div class="hq-race-title">${race.gp.toUpperCase()}</div>
-            <div class="hq-race-sub">${race.circuit} · ${race.laps} Laps · Monoposto Car Power <b>${monopostoPower()}</b></div>
+            <div class="hq-race-sub">${race.circuit} · ${race.laps} Laps · Monoposto Car Power <b>${monopostoPower()}</b> · Calendar cannot skip past Round ${race.round} until GP is logged</div>
           </div>
           <a class="btn primary hq-race-cta" href="#/race">${ctaLabel}</a>
         </div>
+        ${dateOvershoot ? `
+          <div class="hq-race-warn">
+            <span><b>Calendar Sync Recovery:</b> Your save date (${prettyDate(st.date)}) is ahead of unlogged Round ${race.round} (${prettyDate(race.sun)}).</span>
+            <button class="btn small" id="hero-sync-date">SNAP DATE TO ${prettyDate(race.sat).toUpperCase()}</button>
+          </div>
+        ` : ''}
         ${pending.length > 0 ? `
           <div class="hq-race-warn">
             <span><b>Chief Engineer Alert:</b> ${pending.length} researched part blueprint${pending.length === 1 ? ' is' : 's are'} sitting in Research un-manufactured!</span>
@@ -353,6 +415,14 @@ export function render(root) {
         ` : ''}
       </div>
     `;
+    const syncBtn = slot.querySelector('#hero-sync-date');
+    if (syncBtn) {
+      syncBtn.onclick = () => {
+        st.date = qualiDone ? race.sun : race.sat;
+        save();
+        render(root);
+      };
+    }
     const mBtn = slot.querySelector('#hero-open-manuf');
     if (mBtn) {
       mBtn.onclick = () => {
@@ -394,6 +464,18 @@ export function render(root) {
     }
   }
 
+  function specBadgeHTML(specEff) {
+    if (!specEff || !specEff.racesLeft || specEff.racesLeft <= 0) return '';
+    const mod = specEff.speedMod ?? specEff.delta ?? 0;
+    if (mod > 0) {
+      return ` <span class="tag good">★ +1 SPD SPEC SURGE (${specEff.racesLeft} GP left)</span>`;
+    }
+    if (mod < 0) {
+      return ` <span class="tag bad">⚠ −1 SPD CORRELATION ISSUE (${specEff.racesLeft} GP left)</span>`;
+    }
+    return ` <span class="tag">SPEC FITTED (+0 SPD · DP ONLY)</span>`;
+  }
+
   function renderActiveOps() {
     const st = getState();
     const slot = document.getElementById('hq-ops-slot');
@@ -412,9 +494,9 @@ export function render(root) {
           <div>
             <div class="hq-ops-title">ACTIVE FACTORY OPERATIONS — ${hqCity.toUpperCase()} CONTROL</div>
             <div class="hq-ops-sub">
-              Car #${prio.d1 ? prio.d1.no : '1'} (${prio.d1 ? prio.d1.last : 'D1'}): <b>${prio.car1Upgrades} upgrades</b>${prio.priorityCar === 1 ? ' <span class="tag good">★ +1 SPD PRIORITY</span>' : ''}
+              Car #${prio.d1 ? prio.d1.no : '1'} (${prio.d1 ? prio.d1.last : 'D1'}): <b>${prio.car1Upgrades} upgrades</b>${specBadgeHTML(prio.eff1)}
               &nbsp;·&nbsp;
-              Car #${prio.d2 ? prio.d2.no : '2'} (${prio.d2 ? prio.d2.last : 'D2'}): <b>${prio.car2Upgrades} upgrades</b>${prio.priorityCar === 2 ? ' <span class="tag good">★ +1 SPD PRIORITY</span>' : ''}
+              Car #${prio.d2 ? prio.d2.no : '2'} (${prio.d2 ? prio.d2.last : 'D2'}): <b>${prio.car2Upgrades} upgrades</b>${specBadgeHTML(prio.eff2)}
             </div>
           </div>
           <div class="hq-ops-links">
@@ -693,16 +775,21 @@ export function render(root) {
       const cls = ev.outcome === 'failure' ? 'red' : ev.outcome === 'breakthrough' ? 'blue' : '';
       pushFeedItem(`<div class="banner ${cls} feed-event-banner"><div class="bt">${ev.title}</div><div class="bs">${ev.label}</div></div>`, false);
     } else if (ev.type === 'manufacture') {
-      pushFeedItem(`<div class="banner blue feed-event-banner"><div class="bt">${ev.title}</div><div class="bs">${ev.label}</div></div>`, false);
+      const cls = ev.outcome === 'problematic' ? 'red' : 'blue';
+      pushFeedItem(`<div class="banner ${cls} feed-event-banner"><div class="bt">${ev.title}</div><div class="bs">${ev.label}</div></div>`, false);
     } else if (ev.type === 'facility') {
       pushFeedItem(`<div class="banner feed-event-banner"><div class="bt">Facility Upgrade Operational at ${hqCity} HQ</div><div class="bs">${ev.title} — ${ev.label}</div></div>`, false);
     } else if (ev.type === 'race') {
       renderRaceHero(ev.race);
+      pushFeedItem(`<div class="banner feed-event-banner"><div class="bt">Race Weekend Arrived — Round ${ev.race.round} ${ev.race.gp}</div><div class="bs">Calendar held at ${prettyDate(st.date)}. Open Race Control to log Qualifying &amp; Grand Prix results.</div></div>`, false);
+    } else if (ev.type === 'race-locked') {
+      renderRaceHero(ev.race);
+      pushFeedItem(`<div class="banner red feed-event-banner"><div class="bt">Race Weekend Lock — Round ${ev.race.round} ${ev.race.gp}</div><div class="bs">${ev.reason}</div></div>`, false);
     }
   }
 
-  function stepDay() {
-    if (!running) return false;
+  function stepDay(singleStep = false) {
+    if (!running && !singleStep) return false;
     const st = getState();
     const fired = advance(st);
     const { ord: o2, month: m2 } = dateParts(st.date);
@@ -716,23 +803,19 @@ export function render(root) {
     renderAgenda();
     refreshHUD();
     for (const ev of fired) fireEvent(ev);
+    renderRaceHero();
     renderRadioBanner();
     renderActiveOps();
 
     const glyph = document.getElementById('ring-glyph');
 
-    if (fired.some(e => e.type === 'race')) {
+    // Pause auto-advance on Race Weekend arrival, Race Lock, or R&D/Facility task completion
+    if (fired.some(e => e.type === 'race' || e.type === 'race-locked' || e.type === 'research' || e.type === 'manufacture' || e.type === 'facility')) {
       stop();
-      const btn = root.querySelector('#advance');
-      if (btn) {
-        btn.textContent = '▶ ADVANCE';
-        btn.classList.remove('stop');
-      }
-      if (glyph) glyph.textContent = '▶';
-      setCtl('ADVANCE TIME');
+      syncClockButtons();
       return false;
     }
-    if (!nextRace(st.date) && st.date > '2026-12-06') {
+    if (!nextRace(st.date, st) && st.date > '2026-12-06') {
       stop();
       const btn = root.querySelector('#advance');
       if (btn) {
@@ -742,6 +825,7 @@ export function render(root) {
       if (glyph) glyph.textContent = '✓';
       return false;
     }
+    syncClockButtons();
     return true;
   }
 }

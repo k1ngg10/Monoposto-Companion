@@ -1,7 +1,7 @@
 // R&D ENGINE — Step A: Research (RP + days + D20 check) → Step B: Manufacture ($ + days for Car #1, Car #2, or Both) → 50/50 Car DP + #1 Driver Priority Speed Bonus.
 import { partById, APPROACHES } from '../data/partsCatalog.js?v=20261022m';
 import { CALENDAR } from '../data/calendar2026.js?v=20261022m';
-import { driversOfTeam } from '../data/teamsAndDrivers.js?v=20261022m';
+import { driversOfTeam, teamById } from '../data/teamsAndDrivers.js?v=20261022m';
 import {
   engineeringPhase,
   facilityEconomyStats,
@@ -28,6 +28,70 @@ export function specTotalDp(state, part, step, breakthrough = false) {
   const aeroStaffMult = (part.dept === 'aero' && (state.staff?.aerohead || 0) >= 2) ? 1.15 : 1.0;
   const btMult = breakthrough ? (hasFacilityNode(state, 'eng_p3_zero_defect') ? 1.6 : 1.5) : 1.0;
   return Math.round(step.dp * aeroStaffMult * btMult);
+}
+
+// Evaluates realistic F1 On-Track Spec Upgrade Correlation & Temporary Pace Boost Duration.
+// - Lower/Midfield teams (Power <= 5, Phase 1-2): Spec surge is a chance effect that lasts 1 to at most 2 races before depleting as rivals catch up; higher chance of a 1-race track correlation issue (-1 SPD).
+// - Higher/Contender teams (Power >= 6 or Phase 3 Engineering / Elite Crew): Higher intelligence crew sustains a successful spec boost for 2 to 3 races before rival convergence.
+export function evaluateSpecUpgradeCorrelation(state, part, spec = 1, forcedRoll = null) {
+  const team = teamById(state.teamId);
+  const basePwr = team ? team.carPower : 5;
+  const engPhase = engineeringPhase(state);
+  const tdTier = state.staff?.td || 0;
+  const aeroTier = state.staff?.aerohead || 0;
+  const isHighIntelCrew = basePwr >= 6 || engPhase >= 3 || (tdTier >= 2 && aeroTier >= 2);
+  const isMajorSpec = Boolean(part?.core || part?.tier === 'Major' || part?.tier === 'Ultimate' || spec >= 2);
+
+  const rawRoll = typeof forcedRoll === 'number' ? forcedRoll : roll20();
+  const crewBonus = (engPhase >= 3 ? 2 : engPhase === 2 ? 1 : 0) + (tdTier >= 2 ? 1 : 0);
+  const score = rawRoll + crewBonus;
+
+  const probThreshold = isHighIntelCrew ? 3 : 5;    // Roll <= 3 (high team) or <= 5 (lower team) -> problematic track correlation
+  const surgeThreshold = isHighIntelCrew ? 10 : 13; // Roll >= 10 (high team) or >= 13 (lower team) -> temporary +1 SPD spec surge
+
+  if (score <= probThreshold) {
+    return {
+      partId: part.id,
+      partName: part.name,
+      spec,
+      outcome: 'problematic',
+      speedMod: -1,
+      dpMult: 0.55,
+      racesLeft: 1,
+      maxRaces: 1,
+      summary: `Track Correlation Issue (−1 SPD for 1 race — aero/setup instability until engineers recalibrate)`
+    };
+  }
+
+  if (score >= surgeThreshold) {
+    // Lower teams: 1 to max 2 races. Higher teams: 2 to max 3 races.
+    const duration = isHighIntelCrew
+      ? (isMajorSpec || engPhase >= 3 ? 3 : 2)
+      : (isMajorSpec && engPhase >= 2 ? 2 : 1);
+    return {
+      partId: part.id,
+      partName: part.name,
+      spec,
+      outcome: 'optimal',
+      speedMod: 1,
+      dpMult: 1.0,
+      racesLeft: duration,
+      maxRaces: duration,
+      summary: `Optimal Spec Correlation (+1 SPD temporary boost for ${duration} race${duration === 1 ? '' : 's'} before rivals catch up)`
+    };
+  }
+
+  return {
+    partId: part.id,
+    partName: part.name,
+    spec,
+    outcome: 'steady',
+    speedMod: 0,
+    dpMult: 0.85,
+    racesLeft: 0,
+    maxRaces: 0,
+    summary: `Baseline Track Correlation (+0 Driver SPD change — incremental chassis DP only)`
+  };
 }
 
 export function researchQuote(state, partId, approachId = 'standard') {
@@ -228,7 +292,7 @@ export function startManufacture(state, partId, target = 'car1') {
   if (!q) return { error: 'Selected car already has this spec fitted' };
   if (state.cash < q.cost) return { error: `Not enough cash (need $${q.cost.toFixed(2)}M, have $${state.cash.toFixed(2)}M)` };
 
-  const [d1, d2] = driversOfTeam(state.teamId);
+  const [d1, d2] = driversOfTeam(state.teamId, state);
   const carLabel = target === 'both'
     ? `Both Cars (#${d1.no} & #${d2.no})`
     : target === 'car1'
@@ -255,7 +319,7 @@ export function startManufacture(state, partId, target = 'car1') {
   return { ok: true, due, debut: debutRound(due), quote: q, carLabel };
 }
 
-export function resolveManufacture(state, task) {
+export function resolveManufacture(state, task, forcedCorrelationRoll = null) {
   const part = partById(task.partId);
   const p = state.parts[task.partId];
   const spec = task.spec || p.researched;
@@ -264,54 +328,68 @@ export function resolveManufacture(state, task) {
   const car1Dp = Math.floor(totalDp / 2);
   const car2Dp = totalDp - car1Dp;
 
+  // Evaluate On-Track Spec Upgrade Correlation (Optimal temporary boost, Steady DP, or 1-race Problematic correlation)
+  const corr = evaluateSpecUpgradeCorrelation(state, part, spec, forcedCorrelationRoll);
+  if (!state.specEffects || typeof state.specEffects !== 'object') {
+    state.specEffects = { car1: null, car2: null };
+  }
+
   const target = task.target || (task.copies >= 2 ? 'both' : 'car1');
-  let dpGained = 0;
+  let rawDpGained = 0;
 
   if ((target === 'car1' || target === 'both') && (p.car1 || 0) < spec) {
     p.car1 = spec;
-    dpGained += car1Dp;
+    rawDpGained += car1Dp;
+    if (corr.outcome !== 'steady') {
+      state.specEffects.car1 = { ...corr };
+    }
   }
   if ((target === 'car2' || target === 'both') && (p.car2 || 0) < spec) {
     p.car2 = spec;
-    dpGained += car2Dp;
+    rawDpGained += car2Dp;
+    if (corr.outcome !== 'steady') {
+      state.specEffects.car2 = { ...corr };
+    }
   }
 
+  const effectiveDpGained = Math.max(1, Math.round(rawDpGained * (corr.dpMult || 1.0)));
+
   p.copies = ((p.car1 || 0) >= spec ? 1 : 0) + ((p.car2 || 0) >= spec ? 1 : 0);
-  p.dpCredited = (p.dpCredited || 0) + dpGained;
-  state.dpTotal += dpGained;
+  p.dpCredited = (p.dpCredited || 0) + effectiveDpGained;
+  state.dpTotal += effectiveDpGained;
 
   if ((p.car1 || 0) >= spec && (p.car2 || 0) >= spec) {
     p.dpAppliedFor = spec;
     p.breakthrough = false;
   }
 
-  // Update #1 Car Priority Driver tracking for Championship Matrix In-Game Changes alert
   const status = driverPriorityStatus(state);
   if (status.priorityDriver) {
     state.lastPriorityDriverId = status.priorityDriver.id;
     state.equalizedRevertDriverId = null;
-  } else if (state.lastPriorityDriverId) {
-    state.equalizedRevertDriverId = state.lastPriorityDriverId;
-    state.lastPriorityDriverId = null;
   }
 
-  const [d1, d2] = driversOfTeam(state.teamId);
+  const [d1, d2] = driversOfTeam(state.teamId, state);
   const carLabel = target === 'both'
     ? `Both Cars (#${d1.no} & #${d2.no})`
     : target === 'car1'
       ? `Car #${d1.no} ${d1.last}`
       : `Car #${d2.no} ${d2.last}`;
 
-  const priorityNote = status.priorityDriver
-    ? ` · #1 Priority Bonus: ${status.priorityDriver.last} +1 Speed (→ ${status.priorityCar === 1 ? status.d1EffectiveSpeed : status.d2EffectiveSpeed})`
-    : state.equalizedRevertDriverId
-      ? ` · Both cars now equalized (revert Priority Speed bonus in Monoposto)`
-      : '';
-
-  log('manufacture-complete', { part: task.partId, spec, target, dpGained });
+  log('manufacture-complete', {
+    part: task.partId,
+    spec,
+    target,
+    dpGained: effectiveDpGained,
+    correlationOutcome: corr.outcome,
+    speedMod: corr.speedMod,
+    racesLeft: corr.racesLeft
+  });
   return {
     type: 'manufacture',
-    title: `Part Fitted — ${part.name}${part.steps.length > 1 ? ` Spec ${spec}` : ''}`,
-    label: `Fitted to ${carLabel} · debuts ${debutRound(task.due)} · +${dpGained} Team DP${priorityNote}`
+    outcome: corr.outcome === 'problematic' ? 'failure' : corr.outcome === 'optimal' ? 'breakthrough' : 'success',
+    correlation: corr,
+    title: `Part Fitted — ${part.name}${part.steps.length > 1 ? ` Spec ${spec}` : ''} (${corr.outcome.toUpperCase()})`,
+    label: `Fitted to ${carLabel} · debuts ${debutRound(task.due)} · +${effectiveDpGained} Team DP · ${corr.summary}`
   };
 }

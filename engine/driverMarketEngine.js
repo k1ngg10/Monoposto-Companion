@@ -189,57 +189,109 @@ export function signDriverContract(state, candidateId, outgoingDriverId) {
   return { ok: true, move: moveRecord };
 }
 
+export function isProtectedFranchiseDriver(driver) {
+  if (!driver) return false;
+  return driver.pedigree === 'champion' || driver.pedigree === 'franchise' || (driver.titles || 0) >= 1;
+}
+
 export function contractWindowReport(state) {
   ensureDriverAndSyncState(state);
   const roster = activeDrivers(state);
   const standings = driverStandings(state);
+  const loggedRounds = Object.keys(state.results || {}).length;
   const positionOf = id => standings.findIndex(s => s.driver.id === id) + 1;
   const hasResult = id => Object.values(state.results || {}).some(r => r.entries && id in r.entries);
   const report = [];
 
-  // Rule 1 — veteran retirement check (35+): at risk if their car is below
-  // Power 6 OR they finish outside the Top 10 at Abu Dhabi.
-  for (const d of roster.filter(x => (x.age || 0) >= 35)) {
-    const team = teamById(d.team);
-    const livePwr = teamMonopostoPower(team.id, state);
-    const powerTrigger = livePwr < 6;
-    const posTrigger = hasResult(d.id) && positionOf(d.id) > 10;
-    if (powerTrigger || posTrigger) {
-      report.push({
-        rule: 1,
-        driver: d,
-        team,
-        risk: (d.id === 'ALO' || d.id === 'HAM') ? 40 : 50,
-        triggers: [
-          ...(powerTrigger ? [`car Power ${livePwr} < 6`] : []),
-          ...(posTrigger ? [`P${positionOf(d.id)} in the standings — outside the Top 10`] : [])
-        ],
-        reason: `Age ${d.age} · ${team.name} Power ${livePwr} · ${hasResult(d.id) ? `P${positionOf(d.id)} in the standings` : 'no classified finish logged yet'}`
-      });
+  // Rule 1 — Veteran Retirement Watch (Age 36+):
+  // Only arms in the second half of the campaign (8+ rounds logged) so veterans are not flagged at Round 1.
+  if (loggedRounds >= 8) {
+    for (const d of roster.filter(x => (x.age || 0) >= 36)) {
+      const team = teamById(d.team);
+      const livePwr = teamMonopostoPower(team.id, state);
+      const pos = positionOf(d.id);
+      const powerTrigger = livePwr < 5;
+      const posTrigger = hasResult(d.id) && pos > 12;
+      if (powerTrigger || posTrigger) {
+        const baseRetireRisk = d.pedigree === 'champion' ? 25 : 40;
+        report.push({
+          rule: 1,
+          driver: d,
+          team,
+          risk: baseRetireRisk,
+          triggers: [
+            ...(powerTrigger ? [`car Power ${livePwr} < 5`] : []),
+            ...(posTrigger ? [`P${pos} in standings after ${loggedRounds} rounds`] : [])
+          ],
+          reason: `Age ${d.age} · ${team.name} (Power ${livePwr}) · P${pos} in standings after ${loggedRounds} rounds`
+        });
+      }
     }
   }
 
-  // Rule 2 — a #2 driver below 35% of their teammate's points: seat at risk.
-  for (const t of TEAMS) {
-    const [a, b] = driversOfTeam(t.id, state);
-    if (!a || !b) continue;
-    const pa = state.points?.[a.id] || 0, pb = state.points?.[b.id] || 0;
-    if (pa + pb === 0) continue;
-    const [top, low] = pa >= pb ? [a, b] : [b, a];
-    const topPts = Math.max(pa, pb), lowPts = Math.min(pa, pb);
-    if (topPts >= 8 && lowPts < 0.35 * topPts) {
-      report.push({
-        rule: 2,
-        driver: low,
-        team: t,
-        risk: 100,
-        ratio: Math.round((lowPts / topPts) * 100),
-        reason: `${lowPts} pts vs teammate ${top.name}'s ${topPts} — ${Math.round((lowPts / topPts) * 100)}% of teammate, below the 35% line`
-      });
+  // Rule 2 — Realistic Seat Security & Teammate Hot-Seat Evaluation:
+  // - Requires at least 4 completed Grand Prix weekends.
+  // - World Champions & Franchise Pillars (Verstappen, Hamilton, Leclerc, Norris, Russell, Alonso, Stroll) are protected (0% sack risk).
+  // - Accounts for Monoposto's Low-Risk AI handicap: an established driver with lower Risk than a high-risk rookie teammate is protected from arbitrary sacking.
+  // - Rookies & young drivers (pedigree === 'rookie' or age <= 23) face seat pressure much more readily if trailing their veteran teammate or crashing.
+  if (loggedRounds >= 4) {
+    const recentRounds = Object.keys(state.results || {}).map(Number).sort((a, b) => a - b).slice(-4);
+
+    for (const t of TEAMS) {
+      const [a, b] = driversOfTeam(t.id, state);
+      if (!a || !b) continue;
+      const pa = state.points?.[a.id] || 0;
+      const pb = state.points?.[b.id] || 0;
+
+      for (const [drv, mate, myPts, matePts] of [[a, b, pa, pb], [b, a, pb, pa]]) {
+        // World Champions & Franchise leaders are never sacked mid-season
+        if (isProtectedFranchiseDriver(drv)) continue;
+
+        const isRookie = drv.pedigree === 'rookie' || (drv.age || 25) <= 23;
+        const hasLowRiskHandicap = (drv.risk || 6) < (mate.risk || 6) && drv.pedigree !== 'rookie';
+
+        // Count recent DNFs in last 4 races
+        const recentDnfs = recentRounds.filter(r => {
+          const entries = state.results[r]?.entries;
+          return entries && (drv.id in entries) && entries[drv.id] === null;
+        }).length;
+
+        if (isRookie) {
+          // Rookie seat pressure: trailing teammate (<45% when mate has 10+ pts) OR 2+ recent DNFs with fewer points
+          const ratio = matePts > 0 ? Math.round((myPts / matePts) * 100) : 100;
+          if ((matePts >= 10 && myPts < 0.45 * matePts) || (recentDnfs >= 2 && myPts <= matePts)) {
+            const calcRisk = Math.min(85, Math.max(45, 75 - Math.round(ratio * 0.6) + recentDnfs * 12));
+            report.push({
+              rule: 2,
+              driver: drv,
+              team: t,
+              risk: calcRisk,
+              ratio,
+              reason: matePts >= 10 && myPts < 0.45 * matePts
+                ? `Rookie Seat Pressure: ${myPts} pts vs veteran ${mate.last}'s ${matePts} pts (${ratio}%)`
+                : `Rookie Consistency Alert: ${recentDnfs} DNFs in last ${recentRounds.length} races (${myPts} pts)`
+            });
+          }
+        } else if (loggedRounds >= 6 && !hasLowRiskHandicap) {
+          // Established non-franchise driver: only at risk after 6+ rounds if below 30% of a similar/lower-risk teammate
+          if (matePts >= 16 && myPts < 0.30 * matePts) {
+            const ratio = Math.round((myPts / matePts) * 100);
+            const calcRisk = Math.min(65, Math.max(35, 60 - Math.round(ratio * 0.8)));
+            report.push({
+              rule: 2,
+              driver: drv,
+              team: t,
+              risk: calcRisk,
+              ratio,
+              reason: `${myPts} pts vs teammate ${mate.last}'s ${matePts} pts (${ratio}%) after ${loggedRounds} rounds`
+            });
+          }
+        }
+      }
     }
   }
 
-  // Rule 3 — prestige ladder: who qualifies for top seats (Speed 8+ or 20+ pt win over teammate).
+  // Rule 3 — Prestige Ladder: who qualifies for top seats (Speed 8+ or 20+ pt win over teammate).
   const eligible = roster.filter(d => {
     const live = driverLiveStats(d.id, state);
     if (live.speed >= 8) return true;

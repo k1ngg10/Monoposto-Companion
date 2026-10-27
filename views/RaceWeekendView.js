@@ -4,7 +4,7 @@
 // Stage 2: GRAND PRIX (24-driver race classification P1–P24 or DNF + optional finishing time/gap + Fastest Lap,
 //          computing official F1 points for all 24 drivers & 12 teams, FIA Prize Cash, Telemetry RP,
 //          Fan Rating progression, R7/R14 ATR resets, and Season 2 transition at Round 22).
-import { CALENDAR } from '../data/calendar2026.js?v=20261022m';
+import { CALENDAR, nextUnloggedRace } from '../data/calendar2026.js?v=20261022m';
 import { TRACK_MAPS } from '../data/trackMaps.js?v=20261022m';
 import { activeDrivers, driversOfTeam, teamById, driverById } from '../data/teamsAndDrivers.js?v=20261022m';
 import {
@@ -22,7 +22,7 @@ import {
   constructorStandings
 } from '../engine/raceSimulator.js?v=20261022m';
 import { computeSeason2Preview } from '../engine/aiRdEngine.js?v=20261022m';
-import { prettyDate } from '../engine/timeEngine.js?v=20261022m';
+import { prettyDate, daysBetween } from '../engine/timeEngine.js?v=20261022m';
 import { topbarHTML, refreshHUD, fmt$ } from './shared.js?v=20261022m';
 
 function rangeLabel(race) {
@@ -150,16 +150,22 @@ export function openSeason2TransitionModal(onComplete) {
   };
 }
 
-export function render(root) {
+export function render(root, forcedRound = null) {
   root.style.paddingLeft = 'clamp(42px, 7vw, 64px)';
   const s = getState();
-  const race = CALENDAR.find(r => !s.results[r.round] && r.sun >= s.date)
-    || CALENDAR.find(r => !s.results[r.round])
+  const pendingUnlogged = nextUnloggedRace(s);
+  const completedRounds = CALENDAR.filter(r => Boolean(s.results?.[r.round]));
+  const race = (forcedRound && CALENDAR.find(r => r.round === +forcedRound))
+    || pendingUnlogged
     || CALENDAR[CALENDAR.length - 1];
 
   const allRoundsLogged = Object.keys(s.results || {}).length >= 22;
-  const existingQuali = s.qualifying?.[race.round] || null;
+  const existingQuali = s.quali?.[race.round] || s.qualifying?.[race.round] || null;
   const existingRace = s.results?.[race.round] || null;
+
+  // Lock upcoming race weekend if the calendar has NOT reached Qualifying Saturday yet
+  const isFutureLocked = !existingRace && s.date < race.sat;
+  const daysToQuali = isFutureLocked ? daysBetween(s.date, race.sat) : 0;
 
   // Determine initial active stage:
   // If Qualifying has NOT been logged/skipped yet (and race isn't logged), start on 'qualifying'.
@@ -192,8 +198,9 @@ export function render(root) {
   let gpGapMap = {}; // driverId -> string
 
   const syncGpDefaultFromQuali = () => {
-    const baseOrder = (s.qualifying?.[race.round]?.order?.length === 24)
-      ? s.qualifying[race.round].order.map(id => driverById(id, s)).filter(Boolean)
+    const qObj = s.quali?.[race.round] || s.qualifying?.[race.round];
+    const baseOrder = (qObj?.order?.length === 24)
+      ? qObj.order.map(id => driverById(id, s)).filter(Boolean)
       : defaultPerformanceOrder(s);
     baseOrder.forEach((d, idx) => {
       gpPosMap[d.id] = idx + 1;
@@ -224,7 +231,62 @@ export function render(root) {
   const draw = () => {
     const mapSrc = race.map || TRACK_MAPS[race.round] || null;
     const dist = (laps * race.lapKm).toFixed(1);
-    const qSaved = s.qualifying?.[race.round] || null;
+    const qSaved = s.quali?.[race.round] || s.qualifying?.[race.round] || null;
+
+    // If the calendar hasn't reached Qualifying Saturday of this unlogged round yet, render the Paddock Lock / Countdown screen
+    if (isFutureLocked) {
+      root.innerHTML = `
+        ${ribbonHTML()}
+        ${topbarHTML(true)}
+        <div class="hero">
+          <div class="eyebrow">Season ${s.season || 1} (${(s.season || 1) === 1 ? '2026' : '2027'}) · Round ${race.round} of 22 · Paddock Standby</div>
+          <h1 class="page" style="font-size:clamp(2rem,5.5vw,3.2rem)">PADDOCK NOT OPEN YET</h1>
+          <div class="circuit"><span style="font-size:1.25rem;vertical-align:-2px;margin-right:8px">${race.flag}</span>${race.circuit.toUpperCase()} — ${race.gp.toUpperCase()}</div>
+          ${mapSrc ? `<div class="trackframe"><img id="rw-track-map" src="${mapSrc}" alt="${race.circuit} — official F1 track map" loading="eager" decoding="async"></div>` : ''}
+          <div class="chips">
+            <span class="mchip">Current HQ Date: <b>${prettyDate(s.date)}</b></span>
+            <span class="mchip">Qualifying Opens: <b>${prettyDate(race.sat)}</b></span>
+            <span class="mchip">Grand Prix: <b>${prettyDate(race.sun)}</b></span>
+            <span class="mchip" style="border-color:var(--gold);color:var(--gold)"><b>${daysToQuali} Day${daysToQuali === 1 ? '' : 's'} Until Qualifying</b></span>
+          </div>
+        </div>
+
+        <div class="panel" style="max-width:960px">
+          <div class="banner" style="margin-bottom:18px;border-left:4px solid var(--gold)">
+            <div class="bt" style="font-size:1.05rem">⏱ RACE CONTROL LOCKED UNTIL ${prettyDate(race.sat).toUpperCase()} (${daysToQuali} DAY${daysToQuali === 1 ? '' : 'S'} AWAY)</div>
+            <div class="bs" style="line-height:1.55;margin-top:6px">
+              Your team is currently at HQ on <b>${prettyDate(s.date)}</b>. Qualifying and Grand Prix result logging for <b>Round ${race.round} — ${race.gp}</b> will unlock automatically as soon as the calendar reaches <b>${prettyDate(race.sat)}</b>.
+              Advance the calendar day-by-day at Team HQ first so your R&amp;D, manufacturing, and weekly sponsor ticks stay synchronized with the race calendar.
+            </div>
+          </div>
+
+          <div class="btnrow" style="justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <a class="btn primary" href="#/hq">GO TO TEAM HQ &amp; ADVANCE CALENDAR →</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              ${completedRounds.length ? `
+                <label style="font-size:.82rem;color:var(--dim);display:inline-flex;align-items:center;gap:8px">
+                  <span>Inspect Completed Round:</span>
+                  <select id="rw-archive-select" style="padding:6px 10px">
+                    <option value="">Select Logged Round...</option>
+                    ${completedRounds.map(cr => `<option value="${cr.round}">R${cr.round} · ${cr.gp}</option>`).join('')}
+                  </select>
+                </label>
+              ` : ''}
+              <a class="btn small" href="#/matrix">12-TEAM MATRIX</a>
+              <a class="btn small" href="#/standings">STANDINGS</a>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const archSel = document.getElementById('rw-archive-select');
+      if (archSel) {
+        archSel.onchange = () => {
+          if (archSel.value) render(root, +archSel.value);
+        };
+      }
+      return;
+    }
 
     // Order rows for display
     const qualiRows = [...activeDrivers(s)].sort((a, b) => (qualiPosMap[a.id] || 99) - (qualiPosMap[b.id] || 99));
@@ -263,7 +325,14 @@ export function render(root) {
               2. GRAND PRIX ${s.results?.[race.round] ? '✓' : '→'}
             </button>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            ${completedRounds.length ? `
+              <select id="rw-round-switcher" style="padding:6px 10px;font-size:.78rem">
+                ${ pendingUnlogged && s.date >= pendingUnlogged.sat ? `<option value="${pendingUnlogged.round}" ${race.round === pendingUnlogged.round ? 'selected' : ''}>Active: R${pendingUnlogged.round} ${pendingUnlogged.gp}</option>` : '' }
+                ${completedRounds.map(cr => `<option value="${cr.round}" ${race.round === cr.round ? 'selected' : ''}>Logged: R${cr.round} ${cr.gp}</option>`).join('')}
+              </select>
+            ` : ''}
+            <a class="btn small" href="#/hq">TEAM HQ</a>
             <a class="btn small" href="#/standings">STANDINGS</a>
             <a class="btn small" href="#/matrix">12-TEAM MATRIX</a>
           </div>
@@ -283,6 +352,7 @@ export function render(root) {
           <div class="banner blue" style="margin-bottom:16px">
             <div class="bt">${feedbackBanner.title}</div>
             <div class="bs">${feedbackBanner.body}</div>
+            ${feedbackBanner.nextCta ? `<div style="margin-top:10px"><a class="btn primary small" href="#/hq">${feedbackBanner.nextCta}</a></div>` : ''}
           </div>
         ` : ''}
 
@@ -495,6 +565,13 @@ export function render(root) {
     if (tabQ) tabQ.onclick = () => { validationErr = ''; sessionStage = 'qualifying'; draw(); };
     if (tabG) tabG.onclick = () => { validationErr = ''; sessionStage = 'gp'; draw(); };
 
+    const rndSwitch = document.getElementById('rw-round-switcher');
+    if (rndSwitch) {
+      rndSwitch.onchange = () => {
+        if (rndSwitch.value) render(root, +rndSwitch.value);
+      };
+    }
+
     const s2Btn = document.getElementById('rw-open-s2-btn');
     if (s2Btn) {
       s2Btn.onclick = () => openSeason2TransitionModal(() => render(root));
@@ -680,7 +757,7 @@ export function render(root) {
     if (copyQualiBtn) {
       copyQualiBtn.onclick = () => {
         captureGpInputs();
-        const qOrder = s.qualifying?.[race.round]?.order || [];
+        const qOrder = (s.quali?.[race.round] || s.qualifying?.[race.round])?.order || [];
         if (qOrder.length === 24) {
           qOrder.forEach((id, idx) => { gpPosMap[id] = idx + 1; });
           draw();
@@ -785,10 +862,12 @@ export function render(root) {
         const atrText = out.atrResetTable
           ? `<br><b style="color:var(--gold)">★ FIA ATR Wind Tunnel Reset Applied (Round ${race.round}):</b> All 12 constructors' wind-tunnel multipliers updated based on live Constructors' Standings.`
           : '';
+        const nextR = nextUnloggedRace(s);
 
         feedbackBanner = {
           title: `Round ${race.round} ${race.gp} Logged — +${fmt$(out.cashGainedM)} Prize Purse · +${out.rpGained} Telemetry RP · Fan Rating ${fanSign}`,
-          body: `${myD1 ? myD1.last : 'Car #1'}: <b>${p1Str}</b> · ${myD2 ? myD2.last : 'Car #2'}: <b>${p2Str}</b> · Team Points Scored: <b>+${out.rewards.playerPointsScored} PTS</b> · Sponsor Goal: <b>${out.rewards.sponsorGoalPassed ? `PASSED (+${fmt$(out.rewards.sponsorGoalCashM)})` : 'Missed'}</b>${shiftText}${atrText}`
+          body: `${myD1 ? myD1.last : 'Car #1'}: <b>${p1Str}</b> · ${myD2 ? myD2.last : 'Car #2'}: <b>${p2Str}</b> · Team Points Scored: <b>+${out.rewards.playerPointsScored} PTS</b> · Sponsor Goal: <b>${out.rewards.sponsorGoalPassed ? `PASSED (+${fmt$(out.rewards.sponsorGoalCashM)})` : 'Missed'}</b>${shiftText}${atrText}`,
+          nextCta: nextR ? `RETURN TO TEAM HQ & ADVANCE CALENDAR TO ROUND ${nextR.round} (${nextR.gp.toUpperCase()}) →` : ''
         };
 
         draw();

@@ -26,6 +26,21 @@ export function ensureDriverAndSyncState(s) {
   ensureAiState(s);
   if (!s.qualifying || typeof s.qualifying !== 'object') s.qualifying = {};
   if (!s.driverStats || typeof s.driverStats !== 'object') s.driverStats = {};
+  if (!s.specEffects || typeof s.specEffects !== 'object') {
+    s.specEffects = { car1: null, car2: null };
+  }
+
+  // Ensure live roster inherits pedigree, titles, and tenureYears from canon DRIVERS
+  if (Array.isArray(s.roster)) {
+    for (const r of s.roster) {
+      const canon = DRIVERS.find(d => d.id === r.id) || RESERVE_DRIVERS.find(d => d.id === r.id);
+      if (canon) {
+        if (!r.pedigree) r.pedigree = canon.pedigree || 'established';
+        if (typeof r.titles !== 'number') r.titles = canon.titles || 0;
+        if (typeof r.tenureYears !== 'number') r.tenureYears = canon.tenureYears || 1;
+      }
+    }
+  }
 
   const allDrv = [...activeDrivers(s), ...RESERVE_DRIVERS];
   for (const d of allDrv) {
@@ -187,6 +202,7 @@ export function newSave({
     facilities: { ...tier.facilities },   // synced legacy facility phase map
     staff: {},                            // staffId -> tier owned
     parts,                                // partId -> { researched, car1, car2, copies, dpAppliedFor, dpCredited, breakthrough }
+    specEffects: { car1: null, car2: null }, // active temporary spec upgrade correlation effects & race depletion counters
     tasks: [],                            // background queue (research | manufacture | facility)
     qualifying: {},                       // round -> { skipped, gridOnly, order, times }
     results: {},                          // round -> { entries, gaps, fastestLap, conditions, laps, rewards }
@@ -269,10 +285,12 @@ export function truePower(s = state) {           // fractional truth; Monoposto 
 }
 export function monopostoPower(s = state) { return teamMonopostoPower(s.teamId, s); }
 
-// Counts fitted upgrades on Car #1 vs Car #2 and computes the flat +1 Speed
-// #1 Priority Car Bonus (strictly capped at +1 and clamped to max 10).
+// Counts fitted upgrades on Car #1 vs Car #2 and evaluates active temporary Spec Upgrade
+// Correlation effects (optimal temporary surge for 1-2 races on lower teams / 2-3 on higher teams,
+// steady chassis DP, or 1-race problematic track correlation issue).
 export function driverPriorityStatus(s = state) {
   if (!s) return null;
+  ensureDriverAndSyncState(s);
   const [d1, d2] = driversOfTeam(s.teamId, s);
   let car1Upgrades = 0, car2Upgrades = 0;
   for (const p of Object.values(s.parts || {})) {
@@ -280,19 +298,29 @@ export function driverPriorityStatus(s = state) {
     car2Upgrades += (p.car2 || 0);
   }
   const diff = car1Upgrades - car2Upgrades;
+  const eff1 = s.specEffects?.car1 && s.specEffects.car1.racesLeft > 0 ? s.specEffects.car1 : null;
+  const eff2 = s.specEffects?.car2 && s.specEffects.car2.racesLeft > 0 ? s.specEffects.car2 : null;
+
   let priorityDriver = null;
   let priorityCar = null;
-  if (diff > 0) {
+  if (eff1 && eff1.speedMod > 0 && (!eff2 || eff2.speedMod <= 0)) {
     priorityDriver = d1;
     priorityCar = 1;
-  } else if (diff < 0) {
+  } else if (eff2 && eff2.speedMod > 0 && (!eff1 || eff1.speedMod <= 0)) {
+    priorityDriver = d2;
+    priorityCar = 2;
+  } else if (diff > 0 && eff1 && eff1.speedMod > 0) {
+    priorityDriver = d1;
+    priorityCar = 1;
+  } else if (diff < 0 && eff2 && eff2.speedMod > 0) {
     priorityDriver = d2;
     priorityCar = 2;
   }
-  const d1Base = (d1?.speed || 7) + (s.driverStats?.[d1?.id]?.speedDelta || 0);
-  const d2Base = (d2?.speed || 7) + (s.driverStats?.[d2?.id]?.speedDelta || 0);
-  const d1EffectiveSpeed = Math.min(10, Math.max(1, priorityCar === 1 ? d1Base + 1 : d1Base));
-  const d2EffectiveSpeed = Math.min(10, Math.max(1, priorityCar === 2 ? d2Base + 1 : d2Base));
+
+  const d1Mod = Math.max(-1, Math.min(1, (s.driverStats?.[d1?.id]?.speedDelta || 0) + (eff1?.speedMod || 0)));
+  const d2Mod = Math.max(-1, Math.min(1, (s.driverStats?.[d2?.id]?.speedDelta || 0) + (eff2?.speedMod || 0)));
+  const d1EffectiveSpeed = Math.min(9, Math.max(1, (d1?.speed || 7) + d1Mod));
+  const d2EffectiveSpeed = Math.min(9, Math.max(1, (d2?.speed || 7) + d2Mod));
   const revertDriver = (!priorityDriver && s.equalizedRevertDriverId)
     ? driverById(s.equalizedRevertDriverId, s)
     : null;
@@ -302,6 +330,8 @@ export function driverPriorityStatus(s = state) {
     car1Upgrades,
     car2Upgrades,
     diff: Math.abs(diff),
+    eff1,
+    eff2,
     priorityDriver,
     priorityCar,
     d1EffectiveSpeed,
@@ -310,28 +340,44 @@ export function driverPriorityStatus(s = state) {
   };
 }
 
-// Computes live Monoposto Speed (1-10) and Risk (1-10) for any of the 24 drivers
+// Computes live Monoposto Speed (1-10) and Risk (1-10) for any of the 24 drivers.
+// Enforces non-stacking cap so no team/driver can suddenly jump +2/+3 to Speed 8-10 from 1-2 upgrades,
+// and applies temporary Spec Upgrade Track Correlation effects (which deplete after 1-2 races for lower teams, 2-3 for top teams).
 export function driverLiveStats(driverId, s = state) {
   const drv = driverById(driverId, s);
-  if (!drv) return { speed: 7, risk: 6, baseSpeed: 7, baseRisk: 6, isPriority: false, speedReason: '', riskReason: '' };
+  if (!drv) return { speed: 7, risk: 6, baseSpeed: 7, baseRisk: 6, isPriority: false, specEffect: null, speedReason: '', riskReason: '' };
   ensureDriverAndSyncState(s);
   const st = s.driverStats[driverId] || { baseSpeed: drv.speed, baseRisk: drv.risk, speedDelta: 0, riskDelta: 0, speedReason: '', riskReason: '' };
+  const baseSpeed = st.baseSpeed || drv.speed;
+  const baseRisk = st.baseRisk || drv.risk;
 
-  let speed = (st.baseSpeed || drv.speed) + (st.speedDelta || 0);
-  let speedReason = st.speedReason || '';
-  let isPriority = false;
+  let formDelta = st.speedDelta || 0;
+  let specMod = 0;
+  let specEffect = null;
+  let reasons = [];
+  if (st.speedReason) reasons.push(st.speedReason);
 
   if (drv.team === s.teamId) {
-    const prio = driverPriorityStatus(s);
-    if (prio?.priorityDriver?.id === drv.id) {
-      speed += 1;
-      isPriority = true;
-      speedReason = speedReason ? `${speedReason} · #1 Car Priority (+1)` : '#1 Car Upgrade Priority (+1 SPD)';
+    const [d1, d2] = driversOfTeam(s.teamId, s);
+    const carSlot = d1 && d1.id === drv.id ? 'car1' : (d2 && d2.id === drv.id ? 'car2' : null);
+    const eff = carSlot && s.specEffects?.[carSlot];
+    if (eff && eff.racesLeft > 0) {
+      specEffect = eff;
+      specMod = eff.speedMod || 0;
+      if (specMod > 0) {
+        reasons.push(`${eff.partName} Spec Surge (+1 SPD · ${eff.racesLeft} race${eff.racesLeft === 1 ? '' : 's'} left before rivals catch up)`);
+      } else if (specMod < 0) {
+        reasons.push(`${eff.partName} Track Correlation Issue (−1 SPD for ${eff.racesLeft} race while engineers recalibrate)`);
+      }
     }
   }
-  speed = Math.min(10, Math.max(1, speed));
 
-  let risk = (st.baseRisk || drv.risk) + (st.riskDelta || 0);
+  // Strictly clamp combined Speed modifier to [-1, +1] so upgrades + streaks never stack to runaway +2/+3 jumps
+  const combinedDelta = Math.max(-1, Math.min(1, formDelta + specMod));
+  let speed = Math.min(9, Math.max(1, baseSpeed + combinedDelta));
+  if (baseSpeed >= 9 && combinedDelta >= 0) speed = baseSpeed; // Only base-9 champions hold 9
+
+  let risk = baseRisk + (st.riskDelta || 0);
   let riskReason = st.riskReason || '';
   if (drv.team === s.teamId && hasFacilityNode(s, 'per_p3_sim3')) {
     risk -= 1;
@@ -343,12 +389,13 @@ export function driverLiveStats(driverId, s = state) {
     driver: drv,
     speed,
     risk,
-    baseSpeed: st.baseSpeed || drv.speed,
-    baseRisk: st.baseRisk || drv.risk,
-    speedDelta: speed - (st.baseSpeed || drv.speed),
-    riskDelta: risk - (st.baseRisk || drv.risk),
-    isPriority,
-    speedReason,
+    baseSpeed,
+    baseRisk,
+    speedDelta: speed - baseSpeed,
+    riskDelta: risk - baseRisk,
+    isPriority: specMod > 0,
+    specEffect,
+    speedReason: reasons.join(' · '),
     riskReason
   };
 }
@@ -470,6 +517,7 @@ export function startSeason2(s = state, championSummary = {}) {
   s.regFocus = 'current';
   s.nextSeasonDpBank = 0;
   s.parts = {};
+  s.specEffects = { car1: null, car2: null };
   s.tasks = [];
   s.qualifying = {};
   s.results = {};

@@ -3,7 +3,7 @@
 // task completions (research / manufacture / facility sub-upgrades), the Monday
 // weekly tick (including 11-team AI background R&D and Fan Rating merchandise income),
 // and race-weekend arrivals.
-import { CALENDAR, nextRace } from '../data/calendar2026.js?v=20261022m';
+import { CALENDAR, nextRace, nextUnloggedRace } from '../data/calendar2026.js?v=20261022m';
 import { teamById } from '../data/teamsAndDrivers.js?v=20261022m';
 import { computeSponsorEconomy } from '../data/sponsorsAndEngines.js?v=20261022m';
 import {
@@ -33,6 +33,31 @@ export function prettyDate(iso) {
 }
 
 export const SEASON_WEEKS = 38;
+
+// --- race weekend gate -------------------------------------------------------
+// Prevents the calendar from ever skipping past an unlogged Grand Prix weekend.
+export function canAdvanceCalendar(state) {
+  const pending = nextUnloggedRace(state);
+  if (!pending) return { ok: true, pendingRace: null };
+
+  // If the calendar has reached Qualifying Saturday of an unlogged round:
+  if (state.date >= pending.sat) {
+    const hasQuali = !!state.quali?.[pending.round];
+    // Allow stepping from Qualifying Saturday to Grand Prix Sunday ONLY after Qualifying is logged
+    if (state.date === pending.sat && hasQuali) {
+      return { ok: true, pendingRace: pending };
+    }
+    return {
+      ok: false,
+      blockedByRace: pending,
+      stage: hasQuali ? 'race' : 'quali',
+      reason: hasQuali
+        ? `Round ${pending.round} ${pending.gp} Grand Prix results must be logged in Race Control before advancing the calendar.`
+        : `Round ${pending.round} ${pending.gp} weekend is active — log Qualifying & Grand Prix results in Race Control before advancing time.`
+    };
+  }
+  return { ok: true, pendingRace: pending };
+}
 
 // --- weekly tick ---------------------------------------------------------------
 export function weeklyTick(state) {
@@ -97,8 +122,8 @@ export function agenda(state, windowDays = 7) {
   let d = addDays(state.date, 1);
   while (!isMonday(d)) d = addDays(d, 1);
   if (d <= horizon) items.push({ date: d, kind: 'tick', title: 'Weekly tick', label: 'Base income · fan merch · running costs · RP & AI R&D' });
-  // next race weekend (fixture) — always listed once inside the window
-  const race = nextRace(state.date);
+  // next race weekend (fixture) — never skips an unlogged race
+  const race = nextRace(state.date, state);
   if (race && race.sat <= horizon) items.push({ date: race.sat, kind: 'race', title: race.gp, label: `Race weekend — ${race.circuit}`, race });
   return items.sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -152,6 +177,16 @@ export function queueFacility(state, nodeIdOrBranchId, legacyNode, legacyToLevel
 
 // --- the clock -------------------------------------------------------------------
 export function advance(state) {
+  const gate = canAdvanceCalendar(state);
+  if (!gate.ok) {
+    return [{
+      type: 'race-locked',
+      race: gate.blockedByRace,
+      stage: gate.stage,
+      reason: gate.reason
+    }];
+  }
+
   state.date = addDays(state.date, 1);
   const fired = [];
   // tasks due today leave the background queue and resolve
@@ -180,8 +215,10 @@ export function advance(state) {
     }
   }
   if (isMonday(state.date)) fired.push(weeklyTick(state));
-  const race = CALENDAR.find(r => r.sat === state.date);
-  if (race && !state.results[race.round]) fired.push({ type: 'race', race });
+  const pending = nextUnloggedRace(state);
+  if (pending && (pending.sat === state.date || pending.sun === state.date)) {
+    fired.push({ type: 'race', race: pending });
+  }
   save();
   return fired;
 }

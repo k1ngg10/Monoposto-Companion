@@ -24,7 +24,7 @@ import {
 } from '../engine/aiRdEngine.js?v=20261022m';
 import { constructorStandings } from '../engine/raceSimulator.js?v=20261022m';
 import { contractWindowReport } from '../engine/driverMarketEngine.js?v=20261022m';
-import { prettyDate } from '../engine/timeEngine.js?v=20261022m';
+import { prettyDate, daysBetween } from '../engine/timeEngine.js?v=20261022m';
 import { openDriverDossierModal } from './shared.js?v=20261022m';
 
 let matrixViewMode = 'all'; // 'all' | 'sliders' | 'rdspy'
@@ -57,13 +57,21 @@ function lastFinish(state, driverId) {
 function statusFor(driver, report, state, live) {
   const hit = report.find(r => r.driver.id === driver.id);
   if (hit && hit.rule === 1) return { label: 'Retirement Watch', cls: 'bad' };
-  if (hit && hit.rule === 2) return { label: 'Hot Seat', cls: 'bad' };
+  if (hit && hit.rule === 2 && hit.risk > 0) return { label: `Hot Seat (${hit.risk}%)`, cls: 'bad' };
+  const sMod = live.specEffect?.speedMod ?? live.specBonus ?? 0;
+  if (sMod > 0 && live.specEffect) return { label: `Spec Surge (+1 SPD · ${live.specEffect.racesLeft}R)`, cls: 'good' };
+  if (sMod < 0 && live.specEffect) return { label: `Correlation (−1 SPD · ${live.specEffect.racesLeft}R)`, cls: 'bad' };
   if (live.speedDelta > 0) return { label: 'Hot Streak (+1 SPD)', cls: 'good' };
   if (live.speedDelta < 0) return { label: 'Cold Slump (−1 SPD)', cls: 'bad' };
-  if (live.riskDelta > 0) return { label: 'Attack Mode (+1 RSK)', cls: 'warn' };
+  if (live.riskDelta > 0) return { label: 'Racecraft (+1 RSK)', cls: 'warn' };
   if (live.riskDelta < 0) return { label: 'Discipline (−1 RSK)', cls: 'good' };
   const lf = lastFinish(state, driver.id);
-  if (!lf) return { label: 'Season Start', cls: '' };
+  if (!lf) {
+    if (driver.pedigree === 'champion') return { label: 'World Champion', cls: 'good' };
+    if (driver.pedigree === 'franchise') return { label: 'Franchise Lead', cls: '' };
+    if (driver.pedigree === 'rookie') return { label: 'Rookie Contract', cls: 'warn' };
+    return { label: 'Season Start', cls: '' };
+  }
   if (!lf.pos) return { label: 'DNF — Last Race', cls: 'bad' };
   if (lf.pos <= 3) return { label: 'Peak Form', cls: 'good' };
   if (lf.pos <= 10) return { label: 'Consistent', cls: 'good' };
@@ -78,11 +86,17 @@ function driverCell(driver, report, state) {
   const synced = state.monopostoSynced?.drivers?.[driver.id] || { speed: driver.speed, risk: driver.risk };
   const spdDiff = live.speed !== synced.speed;
   const rskDiff = live.risk !== synced.risk;
+  const sMod = live.specEffect?.speedMod ?? live.specBonus ?? 0;
+  const specBadge = sMod > 0
+    ? ` <span class="mx-priobadge" title="Temporary Spec Upgrade Boost (+1 Speed for ${live.specEffect?.racesLeft || 1} GP)">★ +1 SPEC (${live.specEffect?.racesLeft || 1}R)</span>`
+    : sMod < 0
+      ? ` <span class="mx-priobadge" style="background:rgba(225,6,0,.22);color:#ff7a6e;border-color:#ff7a6e" title="Track Correlation Issue (−1 Speed for 1 GP)">⚠ −1 SPEC</span>`
+      : '';
 
   return `<div class="mx-driver mx-clickable-drv" data-inspect-drv="${driver.id}" title="Click to inspect ${driver.name}'s contract &amp; H2H dossier">
     <span class="mx-num" style="background:${team.color}">${driver.no}</span>
     <span class="mx-dmeta">
-      <span class="mx-dname"><span class="fn">${driver.first}</span> <span class="ln">${driver.last}</span>${live.isPriority ? ' <span class="mx-priobadge" title="#1 Car Upgrade Priority (+1 Speed)">★ +1 SPD</span>' : ''}</span>
+      <span class="mx-dname"><span class="fn">${driver.first}</span> <span class="ln">${driver.last}</span>${specBadge}</span>
       <span class="mx-dstats">
         SPD <b style="${spdDiff ? 'color:var(--gold)' : ''}">${spdDiff ? `${synced.speed}→${live.speed}` : live.speed}</b>
         · RSK <b style="${rskDiff ? 'color:var(--gold)' : ''}">${rskDiff ? `${synced.risk}→${live.risk}` : live.risk}</b>
@@ -130,7 +144,7 @@ export function render(root) {
   }).join('');
 
   const retirees = report.filter(r => r.rule === 1);
-  const hotSeat = report.filter(r => r.rule === 2);
+  const hotSeat = report.filter(r => r.rule === 2 && r.risk > 0);
   const anyPoints = Object.values(s.points || {}).some(p => p > 0);
   const radarList = (list, empty) => list.length
     ? list.map(r => `<div class="mx-radar-row mx-clickable-drv" data-inspect-drv="${r.driver.id}" title="Click to inspect ${r.driver.name}">
@@ -322,16 +336,18 @@ export function render(root) {
     `;
   }
 
+  const seasonYear = (s.season || 1) === 1 ? '2026' : '2027';
+  const raceReady = s.date >= next.sat;
+  const daysToQuali = raceReady ? 0 : daysBetween(s.date, next.sat);
+
   root.innerHTML = `<div class="mx-wrap">
     <div class="mx-head">
       <div>
         <h1 class="mx-title">12 TEAMS &amp; 24 DRIVERS — PERFORMANCE MATRIX</h1>
-        <div class="mx-sub">SEASON ${s.season || 1} (${(s.season || 1) === 1 ? '2026' : '2027'}) &nbsp;|&nbsp; MONOPOSTO CAR POWER &nbsp;|&nbsp; AI BACKGROUND R&amp;D &nbsp;|&nbsp; DRIVER SLIDERS &amp; FORM</div>
-      </div>
-      <div class="mx-roundbox">
-        <div class="mx-round">ROUND ${race.round}<span>/22</span></div>
-        <div class="mx-gp">${race.flag} ${race.country.toUpperCase()} — ${race.circuit.toUpperCase()}</div>
-        <a class="btn primary small mx-logbtn" href="#/race">+ LOG RACE WEEKEND</a>
+        <div class="mx-season-hero">
+          <span class="mx-season-pill">${seasonYear} SEASON · CHAMPIONSHIP EDITION</span>
+          <span class="mx-sub">SEASON ${s.season || 1} (${seasonYear}) &nbsp;|&nbsp; MONOPOSTO CAR POWER &nbsp;|&nbsp; SPEC CORRELATION &amp; DEPLETION &nbsp;|&nbsp; DRIVER SLIDERS &amp; FORM</span>
+        </div>
       </div>
     </div>
 
@@ -354,13 +370,17 @@ export function render(root) {
             </div>
           </div>
           <div class="mx-mini mx-next">
-            <div class="mx-mini-title">NEXT ROUND</div>
-            <div class="mx-next-round">ROUND ${next.round}</div>
+            <div class="mx-mini-title">CHAMPIONSHIP ROUND TRACKER</div>
+            <div class="mx-next-round">ROUND ${next.round} OF 22 ${raceReady ? '<span style="color:var(--green)">· LIVE NOW</span>' : `<span style="color:var(--gold)">· IN ${daysToQuali}D</span>`}</div>
             <div class="mx-next-gp">${next.flag} ${next.country.toUpperCase()}</div>
             <div class="mx-next-circuit">${next.circuit.toUpperCase()}</div>
             <div class="mx-next-meta">${next.laps} LAPS &nbsp;·&nbsp; ${next.lapKm.toFixed(3)} KM &nbsp;·&nbsp; ${(next.laps * next.lapKm).toFixed(1)} KM</div>
-            <div class="mx-next-meta">${prettyDate(next.sun).toUpperCase()} ${(s.season || 1) === 1 ? '2026' : '2027'}</div>
-            <a class="btn small" href="#/race">OPEN RACE WEEKEND →</a>
+            <div class="mx-next-meta">HQ DATE: <b>${prettyDate(s.date).toUpperCase()}</b> &nbsp;·&nbsp; GP: <b>${prettyDate(next.sun).toUpperCase()} ${seasonYear}</b></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+              ${raceReady
+                ? `<a class="btn primary small" href="#/race">+ LOG RACE WEEKEND →</a>`
+                : `<a class="btn primary small" href="#/hq">ADVANCE CLOCK AT HQ (${daysToQuali}D TO QUALI) →</a><a class="btn small" href="#/race">RACE CONTROL</a>`}
+            </div>
           </div>
         </div>
       </section>
@@ -415,13 +435,13 @@ export function render(root) {
           <div class="mx-radar-cols">
             <div>
               <div class="mx-radar-h bad">● RETIREMENT WATCH</div>
-              <div class="mx-radar-sub">RULE 1 — age 35+ AND (car Power &lt; 6 OR outside Top 10 at Abu Dhabi)</div>
-              ${radarList(retirees, 'No veteran meets the Rule 1 triggers.')}
+              <div class="mx-radar-sub">RULE 1 — Arms after Round 8 for age 35+ veterans outside Top 10 / Car Power &lt; 6</div>
+              ${radarList(retirees, loggedRounds < 8 ? `Arms at Round 8 (${8 - loggedRounds} rounds to go).` : 'No veteran meets the Rule 1 triggers.')}
             </div>
             <div>
               <div class="mx-radar-h warn">● HOT SEAT / SACK RISK</div>
-              <div class="mx-radar-sub">RULE 2 — under 35% of teammate's points → seat at risk</div>
-              ${radarList(hotSeat, anyPoints ? 'Nobody is below the 35% line.' : 'No points logged yet — Rule 2 arms once results are in.')}
+              <div class="mx-radar-sub">RULE 2 — Rookies &amp; non-franchise drivers underperforming after 4+ rounds (Champions &amp; Franchise Pillars protected)</div>
+              ${radarList(hotSeat, loggedRounds < 4 ? `Seat evaluations begin after Round 4 (${4 - loggedRounds} rounds to go).` : 'No driver is currently on the Hot Seat.')}
             </div>
             <div>
               <div class="mx-radar-h info">● FIA F2 RESERVE POOL</div>
